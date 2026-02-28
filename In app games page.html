@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>In App Games</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121e;
+      --card: #1a1a2e;
+      --border: #2a2a4a;
+      --accent: #00f5ff;
+      --accent2: #ff006e;
+      --accent3: #ffbe0b;
+      --text: #e0e0ff;
+      --muted: #6060a0;
+      --glow-cyan: 0 0 20px #00f5ff66, 0 0 60px #00f5ff22;
+      --glow-pink: 0 0 20px #ff006e66, 0 0 60px #ff006e22;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Exo 2', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.15) 2px,
+        rgba(0,0,0,0.15) 4px
+      );
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    /* Animated grid background */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,245,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,255,0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: gridMove 20s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes gridMove {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(60px); }
+    }
+
+    /* Header */
+    header {
+      position: relative;
+      text-align: center;
+      padding: 60px 20px 40px;
+      z-index: 10;
+    }
+
+    .header-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.2s;
+    }
+
+    header h1 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(24px, 5vw, 48px);
+      line-height: 1.4;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: none;
+      filter: drop-shadow(0 0 30px #00f5ff44);
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.4s;
+    }
+
+    .header-sub {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 14px;
+      letter-spacing: 2px;
+      font-weight: 300;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.6s;
+    }
+
+    .divider {
+      width: 120px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      margin: 30px auto;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.7s;
+    }
+
+    /* Section */
+    .section {
+      position: relative;
+      z-index: 10;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    .section-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      color: var(--accent3);
+      letter-spacing: 4px;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* Games Grid */
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    /* Game Card */
+    .game-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      opacity: 0;
+      animation: fadeUp 0.5s ease forwards;
+      text-decoration: none;
+      display: block;
+    }
+
+    .game-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      box-shadow: var(--glow-cyan);
+    }
+
+    .game-card.coming-soon {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(0.5);
+    }
+
+    .game-card.coming-soon:hover {
+      transform: none;
+      border-color: var(--border);
+      box-shadow: none;
+    }
+
+    /* Card top color bar */
+    .card-bar {
+      height: 3px;
+      width: 100%;
+    }
+
+    .card-art {
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-icon {
+      font-size: 64px;
+      filter: drop-shadow(0 0 20px currentColor);
+      transition: transform 0.3s ease;
+      user-select: none;
+    }
+
+    .game-card:not(.coming-soon):hover .card-icon {
+      transform: scale(1.15) rotate(-5deg);
+    }
+
+    .card-body {
+      padding: 20px;
+    }
+
+    .card-name {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    .card-footer {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-status {
+      font-size: 10px;
+      letter-spacing: 2px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-live { color: #00ff88; }
+    .status-soon { color: var(--muted); }
+
+    .play-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      padding: 8px 14px;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 1px;
+    }
+
+    .play-btn:hover {
+      background: var(--accent);
+      color: var(--bg);
+      box-shadow: var(--glow-cyan);
+    }
+
+    .coming-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    /* Stagger card animations */
+    .game-card:nth-child(1) { animation-delay: 0.8s; }
+    .game-card:nth-child(2) { animation-delay: 0.95s; }
+    .game-card:nth-child(3) { animation-delay: 1.1s; }
+    .game-card:nth-child(4) { animation-delay: 1.25s; }
+    .game-card:nth-child(5) { animation-delay: 1.4s; }
+    .game-card:nth-child(6) { animation-delay: 1.55s; }
+    .game-card:nth-child(7) { animation-delay: 1.7s; }
+    .game-card:nth-child(8) { animation-delay: 1.85s; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--accent);
+      box-shadow: var(--glow-cyan);
+      border-radius: 4px;
+      width: 90%;
+      max-width: 900px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      transform: scale(0.95);
+      transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.open .modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .modal-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      color: var(--accent);
+    }
+
+    .modal-close {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 32px;
+      height: 32px;
+      border-radius: 2px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow: auto;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+    }
+
+    .game-placeholder {
+      text-align: center;
+    }
+
+    .game-placeholder .big-icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      display: block;
+      filter: drop-shadow(0 0 30px #00f5ff88);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    .game-placeholder p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .game-placeholder p span {
+      color: var(--accent);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+    }
+
+    /* iframe for actual games */
+    .game-frame {
+      width: 100%;
+      height: 500px;
+      border: none;
+      border-radius: 2px;
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Pixel corners decoration */
+    .pixel-corner {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+    }
+    .pixel-corner.tl { top: 0; left: 0; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+    .pixel-corner.tr { top: 0; right: 0; border-top: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+    .pixel-corner.bl { bottom: 0; left: 0; border-bottom: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+    .pixel-corner.br { bottom: 0; right: 0; border-bottom: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+
+    @media (max-width: 600px) {
+      header { padding: 40px 20px 30px; }
+      .games-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+
+<header>
+  <div class="header-label">⬡ Game Hub ⬡</div>
+  <h1>IN APP GAMES</h1>
+  <p class="header-sub">Choose your game. Enter the arena.</p>
+  <div class="divider"></div>
+</header>
+
+<main class="section">
+
+  <div class="section-title">▶ Available Now</div>
+
+  <div class="games-grid" id="gamesGrid">
+
+    <!-- CHESS -->
+    <div class="game-card" onclick="openGame('chess')">
+      <div class="card-bar" style="background: linear-gradient(90deg, #b0b0b0, #404040);"></div>
+      <div class="card-art" style="background: radial-gradient(ellipse at center, #2a2a3e, #0a0a0f);">
+        <span class="card-icon">♟️</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Chess</div>
+        <div class="card-desc">Classic strategy. Two players. One board. Outsmart your opponent in the ultimate game of minds.</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-status status-live">● Live</span>
+        <button class="play-btn">PLAY</button>
+      </div>
+    </div>
+
+    <!-- CONNECT 4 -->
+    <div class="game-card" onclick="openGame('connect4')">
+      <div class="card-bar" style="background: linear-gradient(90deg, #ff006e, #ffbe0b);"></div>
+      <div class="card-art" style="background: radial-gradient(ellipse at center, #1e1a2e, #0a0a0f);">
+        <span class="card-icon">🔴</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Connect 4</div>
+        <div class="card-desc">Drop your discs. Line up four. A fast-paced battle of pattern recognition and timing.</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-status status-live">● Live</span>
+        <button class="play-btn">PLAY</button>
+      </div>
+    </div>
+
+    <!-- COMING SOON GAMES -->
+    <div class="game-card coming-soon">
+      <div class="card-bar" style="background: linear-gradient(90deg, #00cc66, #00f5ff);"></div>
+      <div class="card-art" style="background: radial-gradient(ellipse at center, #1a2e1a, #0a0a0f);">
+        <span class="card-icon">⛳</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Mini Golf</div>
+        <div class="card-desc">Navigate creative courses with trick shots and obstacles. Lowest score wins.</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-status status-soon">○ Coming Soon</span>
+        <span class="coming-label">SOON™</span>
+      </div>
+    </div>
+
+    <div class="game-card coming-soon">
+      <div class="card-bar" style="background: linear-gradient(90deg, #00f5ff, #8000ff);"></div>
+      <div class="card-art" style="background: radial-gradient(ellipse at center, #1a1a3e, #0a0a0f);">
+        <span class="card-icon">🃏</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Poker</div>
+        <div class="card-desc">Texas Hold'em style poker. Bluff, bet, and read the table in this multiplayer classic.</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-status status-soon">○ Coming Soon</span>
+        <span class="coming-label">SOON™</span>
+      </div>
+    </div>
+
+    <div class="game-card coming-soon">
+      <div class="card-bar" style="background: linear-gradient(90deg, #ffbe0b, #ff6600);"></div>
+      <div class="card-art" style="background: radial-gradient(ellipse at center, #2e1a0a, #0a0a0f);">
+        <span class="card-icon">🪢</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Hangman</div>
+        <div class="card-desc">Guess the word before time runs out. One wrong letter at a time.</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-status status-soon">○ Coming Soon</span>
+        <span class="coming-label">SOON™</span>
+      </div>
+    </div>
+
+    <div class="game-card coming-soon">
+      <div class="card-bar" style="background: linear-gradient(90deg, #ff006e, #8000ff);"></div>
+      <div class="card-art" style="background: radial-gradient(ellipse at center, #2e0a1e, #0a0a0f);">
+        <span class="card-icon">🟦</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Tatris</div>
+        <div class="card-desc">Stack the blocks, clear the lines. A twist on the classic falling-piece puzzle.</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-status status-soon">○ Coming Soon</span>
+        <span class="coming-label">SOON™</span>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="pixel-corner tl"></div>
+    <div class="pixel-corner tr"></div>
+    <div class="pixel-corner bl"></div>
+    <div class="pixel-corner br"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">GAME</span>
+      <button class="modal-close" onclick="closeGame()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <!-- Game loads here -->
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─── Game Registry ───────────────────────────────────────────────
+  // To add a new game, just add an entry here.
+  // Set `src` to the path/URL of your game file, or leave null to show placeholder.
+  const GAMES = {
+    chess: {
+      title: 'CHESS',
+      icon: '♟️',
+      src: null, // e.g. './games/chess/index.html'
+      description: 'Paste the path to your chess game file in the src field above to connect it.'
+    },
+    connect4: {
+      title: 'CONNECT 4',
+      icon: '🔴',
+      src: null, // e.g. './games/connect4/index.html'
+      description: 'Paste the path to your Connect 4 game file in the src field above to connect it.'
+    }
+    // Add future games here:
+    // minigolf: { title: 'MINI GOLF', icon: '⛳', src: './games/minigolf/index.html' },
+    // poker: { title: 'POKER', icon: '🃏', src: './games/poker/index.html' },
+    // hangman: { title: 'HANGMAN', icon: '🪢', src: './games/hangman/index.html' },
+    // tatris: { title: 'TATRIS', icon: '🟦', src: './games/tatris/index.html' },
+  };
+
+  function openGame(id) {
+    const game = GAMES[id];
+    if (!game) return;
+
+    document.getElementById('modalTitle').textContent = game.title;
+
+    const body = document.getElementById('modalBody');
+
+    if (game.src) {
+      // Load the actual game in an iframe
+      body.innerHTML = `<iframe class="game-frame" src="${game.src}" title="${game.title}"></iframe>`;
+    } else {
+      // Placeholder until game is connected
+      body.innerHTML = `
+        <div class="game-placeholder">
+          <span class="big-icon">${game.icon}</span>
+          <p>
+            <span>${game.title}</span> is ready to connect.<br><br>
+            Open this file and set the <code style="color:#ffbe0b">src</code> value<br>
+            in the <code style="color:#ffbe0b">GAMES</code> object to your game's file path.
+          </p>
+        </div>
+      `;
+    }
+
+    document.getElementById('modalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeGame() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+    // Clear iframe to stop any running game audio/logic
+    setTimeout(() => { document.getElementById('modalBody').innerHTML = ''; }, 300);
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeGame();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeGame();
+  });
+</script>
+
+</body>
+</html>
