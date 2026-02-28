@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TogGather</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; }
+        header, footer { background: #f4f4f4; padding: 1rem; text-align: center; }
+        main { margin-top: 1rem; }
+    </style>
+    
+</head>
+<body>
+    <header>
+        <h1>Welcome to the Basic HTML Page</h1>
+    </header>
+    <main>
+        <div id="profile"></div>
+    </main>
+    <footer>
+        <p>&copy; 2026 Sandbox Hackathon</p>
+    </footer>
+</body>
+<script src="profile.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            let profile1 = new profile({name: "Camor"});
+            profile1.addXP(1500);
+            profile1.displayProfile("profile");
+        });
+    </script>
+</html>
