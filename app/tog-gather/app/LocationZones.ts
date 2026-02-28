@@ -15,9 +15,18 @@ export default class Location {
         
         if (!this.isScrambled) {
             const noise = 0.01; // Adjust this value to increase/decrease scrambling
-            this.latitude += (Math.random() - 0.5) * noise;
-            this.longitude += (Math.random() - 0.5) * noise;
-            this.isScrambled = true;
+            fileRandomFraction().then(randomValue => {
+                this.latitude += randomValue * noise;
+                fileRandomFraction().then(randomValue => {
+                    this.longitude += randomValue * noise;
+                    this.isScrambled = true;
+                    console.log(`Location successfully scrambled to: (${this.latitude}, ${this.longitude})`);
+                }).catch(err => {
+                    console.error('Error scrambling longitude:', err);
+                });
+            }).catch(err => {
+                console.error('Error scrambling latitude:', err);
+            });
         }
     }
     // Method to descramble the location by resetting it to the original coordinates
@@ -64,9 +73,9 @@ export async function filerandom(position: number): Promise<number> {
     }
 }
 
-function fileRandomFraction() {
+async function fileRandomFraction() {
     Math.random(); // Warm up the random number generator
-    return filerandom(0).then(byte => byte / 255);
+    return filerandom(0).then(byte => (byte / 255 - 0.5));
 }
 
 
@@ -76,3 +85,7 @@ filerandom(0).then(byte => {
 }).catch(err => {
     console.error('Error reading RandomNumbers:', err);
 });
+
+let location = new Location(37.7749, -122.4194); // Example coordinates (San Francisco)
+console.log('Original location:', location);
+location.scramble();
