@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Community Feed</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d0f14;
+      --surface: #141720;
+      --card: #1c2030;
+      --card-hover: #222840;
+      --border: #2a3050;
+      --accent: #5dfdcb;
+      --accent2: #ff6b6b;
+      --accent3: #ffd93d;
+      --accent4: #a78bfa;
+      --accent5: #60a5fa;
+      --pink: #f9a8d4;
+      --green: #86efac;
+      --text: #e8eaf6;
+      --muted: #5a6080;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* BG */
+    .bg-fx {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+    }
+    .bg-orb {
+      position: absolute; border-radius: 50%; filter: blur(140px); opacity: 0.08;
+    }
+    .bg-orb.a { width: 700px; height: 700px; top: -300px; right: -200px; background: var(--accent4); }
+    .bg-orb.b { width: 500px; height: 500px; bottom: -200px; left: -100px; background: var(--accent); }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,15,20,0.9);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      height: 58px;
+    }
+
+    .nav-brand {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-right: 32px;
+      white-space: nowrap;
+    }
+    .nav-brand span { color: var(--accent); }
+
+    .nav-links {
+      display: flex;
+      gap: 2px;
+      flex: 1;
+    }
+
+    .nav-link {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      padding: 7px 14px;
+      border-radius: 6px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 2px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-link.active { color: var(--accent); background: rgba(93,253,203,0.08); }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    .nav-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent4), var(--accent));
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .nav-avatar:hover { border-color: var(--accent); }
+
+    /* LAYOUT */
+    .page {
+      position: relative; z-index: 1;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 24px;
+      display: grid;
+      grid-template-columns: 240px 1fr 280px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 1100px) {
+      .page { grid-template-columns: 1fr 320px; }
+      .left-col { display: none; }
+    }
+    @media (max-width: 720px) {
+      .page { grid-template-columns: 1fr; }
+      .right-col { display: none; }
+    }
+
+    /* LEFT COL */
+    .left-col { display: flex; flex-direction: column; gap: 16px; }
+
+    .side-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .side-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--accent3);
+      letter-spacing: 3px;
+      margin-bottom: 14px;
+    }
+
+    .filter-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: left;
+      margin-bottom: 2px;
+    }
+    .filter-btn:hover { background: rgba(255,255,255,0.04); }
+    .filter-btn.active { background: rgba(255,255,255,0.06); border-color: var(--border); }
+    .filter-btn .f-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .filter-btn .f-count { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+
+    .trending-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .trending-item:last-child { border-bottom: none; }
+    .trending-item:hover { color: var(--accent); }
+    .trending-rank {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      width: 20px;
+      flex-shrink: 0;
+    }
+    .trending-name { font-size: 13px; font-weight: 600; }
+    .trending-count { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); }
+
+    /* CENTER FEED */
+    .feed-col { display: flex; flex-direction: column; gap: 0; }
+
+    /* Composer */
+    .composer {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+
+    .composer-top {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .composer-avatar {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent4), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .composer-input {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      padding: 10px 14px;
+      resize: none;
+      min-height: 72px;
+      outline: none;
+      transition: border-color 0.2s;
+      line-height: 1.6;
+    }
+    .composer-input:focus { border-color: var(--accent4); }
+    .composer-input::placeholder { color: var(--muted); }
+
+    .composer-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .attach-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 20px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .attach-btn:hover { border-color: var(--accent4); color: var(--accent4); }
+    .attach-btn.selected { border-color: var(--accent4); color: var(--accent4); background: rgba(167,139,250,0.1); }
+
+    .post-btn {
+      margin-left: auto;
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 8px 20px;
+      background: var(--accent);
+      border: none;
+      color: var(--bg);
+      border-radius: 20px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.2s;
+    }
+    .post-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(93,253,203,0.3); }
+
+    /* Tag selector dropdown */
+    .tag-selector {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 8px;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .tag-selector.open { display: flex; }
+
+    .tag-option {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.15s;
+    }
+    .tag-option:hover { color: var(--text); border-color: var(--text); }
+    .tag-option.selected { border-color: var(--accent4); color: var(--accent4); background: rgba(167,139,250,0.1); }
+
+    /* Feed tabs */
+    .feed-tabs {
+      display: flex;
+      gap: 2px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 18px;
+    }
+
+    .feed-tab {
+      flex: 1;
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      padding: 7px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      border-radius: 7px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .feed-tab.active { background: var(--card); color: var(--text); }
+
+    /* POST CARDS */
+    .post-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 14px;
+      transition: border-color 0.2s;
+      animation: fadeUp 0.4s ease forwards;
+      opacity: 0;
+    }
+    .post-card:hover { border-color: #3a4070; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .post-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .post-avatar {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      border: 2px solid var(--border);
+    }
+
+    .post-meta { flex: 1; }
+    .post-name { font-size: 14px; font-weight: 700; }
+    .post-time {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .post-type-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+      flex-shrink: 0;
+      align-self: flex-start;
+    }
+
+    .post-body { font-size: 14px; line-height: 1.7; color: var(--text); margin-bottom: 12px; }
+
+    /* Attached card (event/game/meetup) */
+    .attached-card {
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .attached-card:hover { opacity: 0.85; }
+    .attached-card .ac-icon { font-size: 24px; flex-shrink: 0; }
+    .attached-card .ac-info { flex: 1; }
+    .attached-card .ac-title { font-size: 13px; font-weight: 700; }
+    .attached-card .ac-sub { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1px; margin-top: 2px; }
+    .attached-card .ac-arrow { font-size: 16px; color: var(--muted); }
+
+    /* Score card */
+    .score-card {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .score-card .sc-game { font-size: 28px; }
+    .score-card .sc-info { flex: 1; }
+    .score-card .sc-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .score-card .sc-score {
+      font-family: 'DM Mono', monospace;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--accent3);
+      letter-spacing: 2px;
+    }
+    .score-card .sc-detail { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 2px; }
+    .score-card .sc-rank {
+      text-align: right;
+    }
+    .score-card .sc-rank-num { font-size: 28px; font-weight: 800; color: var(--accent); line-height: 1; }
+    .score-card .sc-rank-label { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); letter-spacing: 1px; }
+
+    /* Post tags */
+    .post-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .post-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+    }
+
+    /* Actions */
+    .post-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.15s;
+    }
+    .action-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .action-btn.liked { color: var(--accent2); }
+    .action-btn.liked:hover { background: rgba(255,107,107,0.1); }
+    .action-btn .action-icon { font-size: 14px; }
+
+    /* SPONSOR CARD */
+    .sponsor-card {
+      border-radius: 14px;
+      padding: 0;
+      margin-bottom: 14px;
+      overflow: hidden;
+      position: relative;
+      animation: fadeUp 0.4s ease forwards;
+      opacity: 0;
+      border: 1px solid;
+    }
+
+    .sponsor-banner {
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .sponsor-banner::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.5));
+    }
+
+    .sponsor-body { padding: 16px; }
+
+    .sponsor-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 3px;
+      margin-bottom: 6px;
+    }
+
+    .sponsor-name { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .sponsor-tagline { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; }
+
+    .sponsor-cta {
+      display: inline-block;
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      border: none;
+      transition: all 0.2s;
+    }
+    .sponsor-cta:hover { transform: translateY(-1px); filter: brightness(1.1); }
+
+    .sponsor-tag {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+      z-index: 1;
+    }
+
+    /* Comments section */
+    .comments-section {
+      display: none;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      margin-top: 4px;
+    }
+    .comments-section.open { display: block; }
+
+    .comment {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .comment-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      border: 1px solid var(--border);
+    }
+    .comment-body { flex: 1; }
+    .comment-name { font-size: 12px; font-weight: 700; }
+    .comment-text { font-size: 12px; color: #a0a8c0; line-height: 1.5; }
+
+    .comment-input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .comment-input {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 20px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .comment-input:focus { border-color: var(--accent4); }
+    .comment-send {
+      background: var(--accent4);
+      border: none;
+      color: var(--bg);
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .comment-send:hover { transform: scale(1.1); }
+
+    /* RIGHT COL */
+    .right-col { display: flex; flex-direction: column; gap: 16px; }
+
+    .widget-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .widget-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--accent3);
+      letter-spacing: 3px;
+      margin-bottom: 14px;
+    }
+
+    /* Leaderboard */
+    .lb-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-rank { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; width: 24px; color: var(--muted); }
+    .lb-rank.gold { color: var(--accent3); }
+    .lb-rank.silver { color: #c0c0c0; }
+    .lb-rank.bronze { color: #cd7f32; }
+    .lb-avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .lb-name { font-size: 13px; font-weight: 600; flex: 1; }
+    .lb-score { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent); }
+
+    /* Upcoming events widget */
+    .ev-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .ev-row:last-child { border-bottom: none; }
+    .ev-row:hover { color: var(--accent); }
+    .ev-date-block { text-align: center; min-width: 36px; }
+    .ev-day { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); letter-spacing: 1px; }
+    .ev-num { font-size: 18px; font-weight: 800; line-height: 1; }
+    .ev-info { flex: 1; }
+    .ev-name { font-size: 12px; font-weight: 700; line-height: 1.3; }
+    .ev-sub { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+    /* Sponsor widget */
+    .sponsor-widget {
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid;
+      position: relative;
+      overflow: hidden;
+    }
+    .sponsor-widget::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.2;
+    }
+    .sw-label { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 2px; margin-bottom: 8px; }
+    .sw-name { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+    .sw-desc { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 12px; }
+    .sw-btn {
+      font-family: 'Syne', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.2s;
+    }
+    .sw-btn:hover { filter: brightness(1.15); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--card);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      letter-spacing: 2px;
+      z-index: 9999;
+      transition: transform 0.3s ease;
+      box-shadow: 0 0 20px rgba(93,253,203,0.2);
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* stagger */
+    .post-card:nth-child(1), .sponsor-card:nth-child(1) { animation-delay: 0.05s; }
+    .post-card:nth-child(2), .sponsor-card:nth-child(2) { animation-delay: 0.1s; }
+    .post-card:nth-child(3) { animation-delay: 0.15s; }
+    .post-card:nth-child(4) { animation-delay: 0.2s; }
+    .post-card:nth-child(5) { animation-delay: 0.25s; }
+    .post-card:nth-child(6) { animation-delay: 0.3s; }
+    .post-card:nth-child(7) { animation-delay: 0.35s; }
+  </style>
+</head>
+<body>
+
+<div class="bg-fx">
+  <div class="bg-orb a"></div>
+  <div class="bg-orb b"></div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">Valley<span>Link</span></div>
+  <div class="nav-links">
+    <a href="feed.html" class="nav-link active">FEED</a>
+    <a href="map.html" class="nav-link">MAP</a>
+    <a href="calendar.html" class="nav-link">EVENTS</a>
+    <a href="games.html" class="nav-link">GAMES</a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-avatar">👤</div>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- LEFT COL -->
+  <div class="left-col">
+    <div class="side-card">
+      <div class="side-title">▸ FILTER FEED</div>
+      <button class="filter-btn active" onclick="setFilter('all', this)">
+        <span class="f-dot" style="background:var(--muted)"></span> All Posts
+        <span class="f-count" id="count-all">–</span>
+      </button>
+      <button class="filter-btn" onclick="setFilter('event', this)">
+        <span class="f-dot" style="background:var(--accent5)"></span> Events
+        <span class="f-count" id="count-event">–</span>
+      </button>
+      <button class="filter-btn" onclick="setFilter('game', this)">
+        <span class="f-dot" style="background:var(--accent3)"></span> Games
+        <span class="f-count" id="count-game">–</span>
+      </button>
+      <button class="filter-btn" onclick="setFilter('meetup', this)">
+        <span class="f-dot" style="background:var(--pink)"></span> Meetups
+        <span class="f-count" id="count-meetup">–</span>
+      </button>
+      <button class="filter-btn" onclick="setFilter('community', this)">
+        <span class="f-dot" style="background:var(--green)"></span> Community
+        <span class="f-count" id="count-community">–</span>
+      </button>
+    </div>
+
+    <div class="side-card">
+      <div class="side-title">▸ TRENDING TAGS</div>
+      <div class="trending-item" onclick="showToast('#BoiseGames trending!')">
+        <span class="trending-rank">#1</span>
+        <span class="trending-name">#BoiseGames</span>
+        <span class="trending-count">142 posts</span>
+      </div>
+      <div class="trending-item" onclick="showToast('#TreasureValley trending!')">
+        <span class="trending-rank">#2</span>
+        <span class="trending-name">#TreasureValley</span>
+        <span class="trending-count">98 posts</span>
+      </div>
+      <div class="trending-item" onclick="showToast('#LocalMeetup trending!')">
+        <span class="trending-rank">#3</span>
+        <span class="trending-name">#LocalMeetup</span>
+        <span class="trending-count">76 posts</span>
+      </div>
+      <div class="trending-item" onclick="showToast('#ChessClub trending!')">
+        <span class="trending-rank">#4</span>
+        <span class="trending-name">#ChessClub</span>
+        <span class="trending-count">54 posts</span>
+      </div>
+      <div class="trending-item" onclick="showToast('#NightMarket trending!')">
+        <span class="trending-rank">#5</span>
+        <span class="trending-name">#NightMarket</span>
+        <span class="trending-count">41 posts</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEED -->
+  <div class="feed-col">
+
+    <!-- Composer -->
+    <div class="composer">
+      <div class="composer-top">
+        <div class="composer-avatar">👤</div>
+        <textarea class="composer-input" id="composerText" placeholder="What's happening in the Valley? Share an event, game score, or meetup..."></textarea>
+      </div>
+      <div class="composer-actions">
+        <button class="attach-btn" id="btnEvent" onclick="toggleAttach('event')">📅 Event</button>
+        <button class="attach-btn" id="btnGame" onclick="toggleAttach('game')">🎮 Game Score</button>
+        <button class="attach-btn" id="btnMeetup" onclick="toggleAttach('meetup')">📍 Meetup</button>
+        <button class="post-btn" onclick="submitPost()">POST</button>
+      </div>
+      <div class="tag-selector" id="tagSelector"></div>
+    </div>
+
+    <!-- Feed tabs -->
+    <div class="feed-tabs">
+      <button class="feed-tab active" onclick="setTab('forYou', this)">FOR YOU</button>
+      <button class="feed-tab" onclick="setTab('nearby', this)">NEARBY</button>
+      <button class="feed-tab" onclick="setTab('following', this)">FOLLOWING</button>
+      <button class="feed-tab" onclick="setTab('trending', this)">TRENDING</button>
+    </div>
+
+    <!-- Feed -->
+    <div id="feedContainer"></div>
+
+  </div>
+
+  <!-- RIGHT COL -->
+  <div class="right-col">
+
+    <!-- Leaderboard -->
+    <div class="widget-card">
+      <div class="widget-title">▸ GAME LEADERBOARD</div>
+      <div class="lb-row">
+        <span class="lb-rank gold">🥇</span>
+        <div class="lb-avatar" style="background:#ffd93d22;border-color:#ffd93d">🎯</div>
+        <span class="lb-name">xShadow99</span>
+        <span class="lb-score">48,200 pts</span>
+      </div>
+      <div class="lb-row">
+        <span class="lb-rank silver">🥈</span>
+        <div class="lb-avatar" style="background:#a78bfa22;border-color:#a78bfa">♟️</div>
+        <span class="lb-name">QueenMoves</span>
+        <span class="lb-score">41,750 pts</span>
+      </div>
+      <div class="lb-row">
+        <span class="lb-rank bronze">🥉</span>
+        <div class="lb-avatar" style="background:#5dfdcb22;border-color:#5dfdcb">🟦</div>
+        <span class="lb-name">TetrisTyler</span>
+        <span class="lb-score">38,400 pts</span>
+      </div>
+      <div class="lb-row">
+        <span class="lb-rank" style="font-size:10px">4</span>
+        <div class="lb-avatar" style="background:#ff6b6b22;border-color:#ff6b6b">🔴</div>
+        <span class="lb-name">C4Champion</span>
+        <span class="lb-score">29,100 pts</span>
+      </div>
+      <div class="lb-row">
+        <span class="lb-rank" style="font-size:10px">5</span>
+        <div class="lb-avatar" style="background:#60a5fa22;border-color:#60a5fa">🃏</div>
+        <span class="lb-name">PokerFace_J</span>
+        <span class="lb-score">24,800 pts</span>
+      </div>
+    </div>
+
+    <!-- Upcoming events widget -->
+    <div class="widget-card">
+      <div class="widget-title">▸ UPCOMING EVENTS</div>
+      <div class="ev-row" onclick="window.location.href='calendar.html'">
+        <div class="ev-date-block">
+          <div class="ev-day">MAR</div>
+          <div class="ev-num" style="color:var(--accent5)">01</div>
+        </div>
+        <div class="ev-info">
+          <div class="ev-name">Jazz Night at Riverside</div>
+          <div class="ev-sub">7PM · 0.4 mi away</div>
+        </div>
+      </div>
+      <div class="ev-row" onclick="window.location.href='calendar.html'">
+        <div class="ev-date-block">
+          <div class="ev-day">MAR</div>
+          <div class="ev-num" style="color:var(--green)">02</div>
+        </div>
+        <div class="ev-info">
+          <div class="ev-name">Parkour & Urban Fitness</div>
+          <div class="ev-sub">7AM · 1.1 mi away</div>
+        </div>
+      </div>
+      <div class="ev-row" onclick="window.location.href='calendar.html'">
+        <div class="ev-date-block">
+          <div class="ev-day">MAR</div>
+          <div class="ev-num" style="color:var(--accent3)">06</div>
+        </div>
+        <div class="ev-info">
+          <div class="ev-name">Night Market</div>
+          <div class="ev-sub">5PM · 1.8 mi away</div>
+        </div>
+      </div>
+      <div class="ev-row" onclick="window.location.href='calendar.html'">
+        <div class="ev-date-block">
+          <div class="ev-day">MAR</div>
+          <div class="ev-num" style="color:var(--accent4)">08</div>
+        </div>
+        <div class="ev-info">
+          <div class="ev-name">Trivia Night</div>
+          <div class="ev-sub">8PM · 0.3 mi away</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar sponsor widget -->
+    <div class="sponsor-widget" style="border-color:#ffd93d55;background:linear-gradient(135deg,#1c1810,#1c2030)">
+      <div style="position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;filter:blur(40px);opacity:0.25;background:#ffd93d;pointer-events:none"></div>
+      <div class="sw-label" style="color:var(--accent3)">★ FEATURED SPONSOR</div>
+      <div class="sw-name">Level Up Game Shop</div>
+      <div class="sw-desc">Boise's best board games, TCGs & tabletop RPGs. 10% off for ValleyLink members!</div>
+      <button class="sw-btn" style="background:var(--accent3);color:var(--bg)" onclick="showToast('OPENING LEVEL UP GAME SHOP...')">CLAIM OFFER →</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+// ─── SEED DATA ────────────────────────────────────────────────────
+
+const SEED_POSTS = [
+  {
+    id: 1, type: 'game',
+    user: { name: 'TetrisTyler', avatar: '🟦', color: '#5dfdcb22', border: '#5dfdcb' },
+    time: '2m ago',
+    body: "Just set a new personal best on Tetris 🔥 Level 14, cleared 42 lines. Anyone want to challenge me?",
+    score: { game: 'Tetris', emoji: '🟦', score: '38,400', detail: 'Level 14 · 42 lines cleared', rank: '#3' },
+    tags: [{ label: '#BoiseGames', color: '#5dfdcb' }, { label: '#Tetris', color: '#5dfdcb' }],
+    likes: 14, comments: 3, liked: false,
+    commentList: [
+      { user: 'xShadow99', avatar: '🎯', text: 'GG! I\'m at 48k — come at me 👀' },
+      { user: 'QueenMoves', avatar: '♟️', text: 'Nice run! Level 14 is no joke.' },
+    ]
+  },
+  {
+    id: 2, type: 'event',
+    user: { name: 'JazzFan_Boise', avatar: '🎷', color: '#60a5fa22', border: '#60a5fa' },
+    time: '18m ago',
+    body: "Heading to Jazz Night at Riverside tonight — who else is going?? First time checking this place out 🎶",
+    attached: { type: 'event', emoji: '🎷', title: 'Jazz Night at Riverside', sub: 'SAT MAR 1 · 7PM · Riverside Bar & Grill', color: '#60a5fa', bg: '#60a5fa18', border: '#60a5fa44', link: 'calendar.html' },
+    tags: [{ label: '#LiveMusic', color: '#60a5fa' }, { label: '#TreasureValley', color: '#a78bfa' }],
+    likes: 27, comments: 5, liked: false,
+    commentList: [
+      { user: 'MilesAround', avatar: '🎵', text: 'I\'ll be there! See you at the bar 🎷' },
+    ]
+  },
+  {
+    id: 'sponsor-1', type: 'sponsor',
+    brand: { name: 'Riverside Bar & Grill', emoji: '🎷', tagline: 'Live music every weekend. Cold drinks, great vibes. Mention ValleyLink for a free appetizer on your first visit!', cta: 'VIEW MENU & RESERVE', bgGradient: 'linear-gradient(135deg, #0d1520, #0d2030)', bannerBg: 'linear-gradient(135deg,#0d2040,#162040)', accentColor: '#60a5fa', ctaBg: '#60a5fa', ctaColor: '#0d0f14' },
+  },
+  {
+    id: 3, type: 'meetup',
+    user: { name: 'ChessKing_Ada', avatar: '♟️', color: '#a78bfa22', border: '#a78bfa' },
+    time: '1h ago',
+    body: "Posted a casual chess meetup at Julia Davis Park this Sunday afternoon! All skill levels welcome — bring a board if you have one 😊",
+    attached: { type: 'meetup', emoji: '♟️', title: 'Casual Chess at Julia Davis Park', sub: 'SUN MAR 2 · 2PM · Julia Davis Park', color: '#a78bfa', bg: '#a78bfa18', border: '#a78bfa44', link: 'map.html' },
+    tags: [{ label: '#ChessClub', color: '#a78bfa' }, { label: '#LocalMeetup', color: '#f9a8d4' }],
+    likes: 19, comments: 4, liked: false,
+    commentList: [
+      { user: 'PawnStorm', avatar: '♟️', text: 'I\'m in! Bringing my travel board.' },
+      { user: 'BishopBob', avatar: '🎯', text: 'Finally a chess meetup in Boise 🙌' },
+    ]
+  },
+  {
+    id: 4, type: 'community',
+    user: { name: 'ValleyVibes', avatar: '🌳', color: '#86efac22', border: '#86efac' },
+    time: '2h ago',
+    body: "PSA: Table Rock trail is in perfect condition right now. Sunrise hike this weekend is going to go crazy. Who's in? 🌄 #TreasureValley #Outdoor",
+    tags: [{ label: '#TreasureValley', color: '#86efac' }, { label: '#Outdoor', color: '#86efac' }, { label: '#Hiking', color: '#5dfdcb' }],
+    likes: 44, comments: 8, liked: false,
+    commentList: [
+      { user: 'HikeBoise', avatar: '🥾', text: 'Sunrise from Table Rock is unreal. Count me in!' },
+      { user: 'MorningRunner', avatar: '🏃', text: 'What time are you thinking?' },
+    ]
+  },
+  {
+    id: 5, type: 'game',
+    user: { name: 'xShadow99', avatar: '🎯', color: '#ffd93d22', border: '#ffd93d' },
+    time: '3h ago',
+    body: "Undefeated in Connect 4 today. 8-0. Send your best players 😤",
+    score: { game: 'Connect 4', emoji: '🔴', score: '8 — 0', detail: 'Win streak · Today\'s record', rank: '#1' },
+    tags: [{ label: '#Connect4', color: '#ff6b6b' }, { label: '#BoiseGames', color: '#5dfdcb' }],
+    likes: 31, comments: 6, liked: false,
+    commentList: [
+      { user: 'C4Champion', avatar: '🔴', text: 'Challenge accepted. Tonight.' },
+    ]
+  },
+  {
+    id: 'sponsor-2', type: 'sponsor',
+    brand: { name: 'Level Up Game Shop', emoji: '🎲', tagline: 'Boise\'s #1 board game & TCG store. Magic, DnD, Pokémon, and hundreds of board games. ValleyLink members get 10% off everything in-store!', cta: 'GET 10% OFF →', bgGradient: 'linear-gradient(135deg, #0d1a0d, #101820)', bannerBg: 'linear-gradient(135deg, #0d2a0d, #102010)', accentColor: '#5dfdcb', ctaBg: '#5dfdcb', ctaColor: '#0d0f14' },
+  },
+  {
+    id: 6, type: 'event',
+    user: { name: 'NightMarketNancy', avatar: '🍜', color: '#ffd93d22', border: '#ffd93d' },
+    time: '4h ago',
+    body: "Can't wait for the Night Market on Thursday!! Going with my crew — if you see a group of 6 arguing about which food stall to hit first, that's us 😂",
+    attached: { type: 'event', emoji: '🍜', title: 'Night Market', sub: 'THU MAR 6 · 5–10PM · Warehouse District', color: '#ffd93d', bg: '#ffd93d18', border: '#ffd93d44', link: 'calendar.html' },
+    tags: [{ label: '#NightMarket', color: '#ffd93d' }, { label: '#BoiseEats', color: '#ff6b6b' }],
+    likes: 52, comments: 11, liked: false,
+    commentList: [
+      { user: 'FoodieKing', avatar: '🍕', text: 'The Korean BBQ stand is a must 🔥' },
+      { user: 'MarketMaven', avatar: '🌮', text: 'I\'ll be there! The vendor lineup this month is insane' },
+    ]
+  },
+  {
+    id: 7, type: 'community',
+    user: { name: 'BoiseConnect', avatar: '🏙️', color: '#5dfdcb22', border: '#5dfdcb' },
+    time: '6h ago',
+    body: "Just dropped a new meetup for senior assassin players in the downtown zone 🎯 Check the map for active zones near you. The game is getting serious!",
+    tags: [{ label: '#SeniorAssassin', color: '#ff6b6b' }, { label: '#LocationGames', color: '#ff6b6b' }, { label: '#Downtown', color: '#5dfdcb' }],
+    likes: 38, comments: 14, liked: false,
+    commentList: [
+      { user: 'Agent_Zero', avatar: '🎯', text: 'Zone B is heating up. Watch your back 👀' },
+    ]
+  },
+];
+
+// ─── STATE ────────────────────────────────────────────────────────
+
+let posts = [...SEED_POSTS];
+let activeFilter = 'all';
+let activeTab = 'forYou';
+let attachedType = null;
+let selectedTagOptions = [];
+
+const TAG_OPTIONS = {
+  event: ['Jazz Night', 'Farmers Market', 'Night Market', 'Trivia Night', '5K Fun Run', 'Watercolor Workshop', 'Parkour Fitness'],
+  game: ['Chess', 'Connect 4', 'Tetris', 'Poker', 'Hangman', 'Mini Golf'],
+  meetup: ['Julia Davis Park', 'Ann Morrison Park', 'Downtown', 'Camel\'s Back', 'Hyde Park'],
+};
+
+const USER_AVATARS = ['🦊','🐺','🦁','🐧','🦋','🎭','🌊','⚡','🎸','🏔️'];
+const USER_NAMES = ['BoiseLocal','ValleyKid','TreasureHunter','CityExplorer','ParkLife','GameOn','EventGoer','NightOwl'];
+const COLORS = ['#5dfdcb','#a78bfa','#60a5fa','#f9a8d4','#ffd93d','#86efac','#ff6b6b'];
+
+// ─── RENDER ───────────────────────────────────────────────────────
+
+function renderFeed() {
+  const container = document.getElementById('feedContainer');
+  container.innerHTML = '';
+
+  const filtered = posts.filter(p => {
+    if (p.type === 'sponsor') return true; // always show sponsors
+    if (activeFilter === 'all') return true;
+    return p.type === activeFilter;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:60px 20px;background:var(--surface);border:1px dashed var(--border);border-radius:14px">
+      <div style="font-size:40px;margin-bottom:12px">🔍</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">Nothing here yet</div>
+      <div style="font-size:13px;color:var(--muted)">Be the first to post in this category!</div>
+    </div>`;
+    return;
+  }
+
+  filtered.forEach((post, i) => {
+    const el = post.type === 'sponsor' ? buildSponsorCard(post, i) : buildPostCard(post, i);
+    container.appendChild(el);
+  });
+
+  updateCounts();
+}
+
+function buildPostCard(post, idx) {
+  const div = document.createElement('div');
+  div.className = 'post-card';
+  div.style.animationDelay = `${idx * 0.05}s`;
+
+  const TYPE_META = {
+    event:     { label: '📅 EVENT',   color: '#60a5fa' },
+    game:      { label: '🎮 GAME',    color: '#ffd93d' },
+    meetup:    { label: '📍 MEETUP',  color: '#f9a8d4' },
+    community: { label: '💬 COMMUNITY', color: '#86efac' },
+  };
+  const meta = TYPE_META[post.type] || TYPE_META.community;
+
+  let attachedHTML = '';
+  if (post.attached) {
+    const a = post.attached;
+    attachedHTML = `
+      <div class="attached-card" style="background:${a.bg};border-color:${a.border}" onclick="window.location.href='${a.link}'">
+        <span class="ac-icon">${a.emoji}</span>
+        <div class="ac-info">
+          <div class="ac-title">${a.title}</div>
+          <div class="ac-sub" style="color:${a.color}">${a.sub}</div>
+        </div>
+        <span class="ac-arrow">→</span>
+      </div>`;
+  }
+
+  let scoreHTML = '';
+  if (post.score) {
+    const s = post.score;
+    scoreHTML = `
+      <div class="score-card">
+        <span class="sc-game">${s.emoji}</span>
+        <div class="sc-info">
+          <div class="sc-title">${s.game}</div>
+          <div class="sc-score">${s.score}</div>
+          <div class="sc-detail">${s.detail}</div>
+        </div>
+        <div class="sc-rank">
+          <div class="sc-rank-num">${s.rank}</div>
+          <div class="sc-rank-label">RANK</div>
+        </div>
+      </div>`;
+  }
+
+  const tagsHTML = post.tags ? post.tags.map(t =>
+    `<span class="post-tag" style="background:${t.color}18;color:${t.color};border:1px solid ${t.color}44">${t.label}</span>`
+  ).join('') : '';
+
+  const commentsHTML = (post.commentList || []).map(c => `
+    <div class="comment">
+      <div class="comment-avatar" style="background:var(--card)">${c.avatar || '👤'}</div>
+      <div class="comment-body">
+        <div class="comment-name">${c.user}</div>
+        <div class="comment-text">${c.text}</div>
+      </div>
+    </div>
+  `).join('');
+
+  div.innerHTML = `
+    <div class="post-header">
+      <div class="post-avatar" style="background:${post.user.color};border-color:${post.user.border}">${post.user.avatar}</div>
+      <div class="post-meta">
+        <div class="post-name">${post.user.name}</div>
+        <div class="post-time">${post.time}</div>
+      </div>
+      <span class="post-type-badge" style="background:${meta.color}18;color:${meta.color};border:1px solid ${meta.color}44">${meta.label}</span>
+    </div>
+    <div class="post-body">${post.body}</div>
+    ${scoreHTML}
+    ${attachedHTML}
+    ${tagsHTML ? `<div class="post-tags">${tagsHTML}</div>` : ''}
+    <div class="post-actions">
+      <button class="action-btn ${post.liked ? 'liked' : ''}" id="like-${post.id}" onclick="toggleLike(${JSON.stringify(post.id)})">
+        <span class="action-icon">${post.liked ? '❤️' : '🤍'}</span>
+        <span id="likecount-${post.id}">${post.likes}</span>
+      </button>
+      <button class="action-btn" onclick="toggleComments('comments-${post.id}')">
+        <span class="action-icon">💬</span>
+        <span>${post.comments}</span>
+      </button>
+      <button class="action-btn" onclick="showToast('SHARE LINK COPIED!')">
+        <span class="action-icon">↗</span> SHARE
+      </button>
+      <button class="action-btn" onclick="showToast('POST SAVED!')">
+        <span class="action-icon">🔖</span>
+      </button>
+    </div>
+    <div class="comments-section" id="comments-${post.id}">
+      ${commentsHTML}
+      <div class="comment-input-row">
+        <div class="comment-avatar" style="background:var(--card)">👤</div>
+        <input class="comment-input" placeholder="Add a comment..." onkeydown="handleComment(event, ${JSON.stringify(post.id)})" />
+        <button class="comment-send" onclick="sendComment(this, ${JSON.stringify(post.id)})">→</button>
+      </div>
+    </div>
+  `;
+
+  return div;
+}
+
+function buildSponsorCard(post, idx) {
+  const div = document.createElement('div');
+  div.className = 'sponsor-card';
+  div.style.animationDelay = `${idx * 0.05}s`;
+  div.style.borderColor = post.brand.accentColor + '55';
+
+  div.innerHTML = `
+    <span class="sponsor-tag" style="background:${post.brand.accentColor}22;color:${post.brand.accentColor};border:1px solid ${post.brand.accentColor}44">★ SPONSORED</span>
+    <div class="sponsor-banner" style="background:${post.brand.bannerBg}">
+      ${post.brand.emoji}
+    </div>
+    <div class="sponsor-body" style="background:${post.brand.bgGradient}">
+      <div class="sponsor-label" style="color:${post.brand.accentColor}">★ FEATURED PARTNER</div>
+      <div class="sponsor-name">${post.brand.name}</div>
+      <div class="sponsor-tagline">${post.brand.tagline}</div>
+      <button class="sponsor-cta" style="background:${post.brand.ctaBg};color:${post.brand.ctaColor}" onclick="showToast('OPENING ${post.brand.name.toUpperCase()}...')">${post.brand.cta}</button>
+    </div>
+  `;
+
+  return div;
+}
+
+// ─── INTERACTIONS ─────────────────────────────────────────────────
+
+function toggleLike(id) {
+  const post = posts.find(p => p.id === id);
+  if (!post) return;
+  post.liked = !post.liked;
+  post.likes += post.liked ? 1 : -1;
+
+  const btn = document.getElementById(`like-${id}`);
+  const count = document.getElementById(`likecount-${id}`);
+  if (btn && count) {
+    btn.classList.toggle('liked', post.liked);
+    btn.querySelector('.action-icon').textContent = post.liked ? '❤️' : '🤍';
+    count.textContent = post.likes;
+  }
+}
+
+function toggleComments(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
+function handleComment(e, postId) {
+  if (e.key === 'Enter') sendComment(e.target.nextElementSibling, postId, e.target);
+}
+
+function sendComment(btn, postId, inputEl) {
+  const row = btn.closest('.comment-input-row');
+  const input = inputEl || row.querySelector('.comment-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const section = btn.closest('.comments-section');
+  const comment = document.createElement('div');
+  comment.className = 'comment';
+  comment.innerHTML = `
+    <div class="comment-avatar" style="background:var(--card)">👤</div>
+    <div class="comment-body">
+      <div class="comment-name">You</div>
+      <div class="comment-text">${text}</div>
+    </div>
+  `;
+  section.insertBefore(comment, row);
+  input.value = '';
+
+  // Update count
+  const post = posts.find(p => p.id === postId);
+  if (post) {
+    post.comments++;
+    showToast('COMMENT POSTED!');
+  }
+}
+
+// ─── COMPOSER ─────────────────────────────────────────────────────
+
+function toggleAttach(type) {
+  const btn = document.getElementById(`btn${type.charAt(0).toUpperCase() + type.slice(1)}`);
+  const sel = document.getElementById('tagSelector');
+
+  if (attachedType === type) {
+    attachedType = null;
+    btn.classList.remove('selected');
+    sel.classList.remove('open');
+    sel.innerHTML = '';
+    selectedTagOptions = [];
+    return;
+  }
+
+  // Deselect previous
+  ['Event','Game','Meetup'].forEach(t => {
+    document.getElementById('btn'+t)?.classList.remove('selected');
+  });
+
+  attachedType = type;
+  btn.classList.add('selected');
+  selectedTagOptions = [];
+
+  const options = TAG_OPTIONS[type] || [];
+  sel.innerHTML = options.map(o =>
+    `<span class="tag-option" onclick="toggleTagOption(this, '${o}')">${o}</span>`
+  ).join('');
+  sel.classList.add('open');
+}
+
+function toggleTagOption(el, val) {
+  el.classList.toggle('selected');
+  if (el.classList.contains('selected')) {
+    selectedTagOptions.push(val);
+  } else {
+    selectedTagOptions = selectedTagOptions.filter(v => v !== val);
+  }
+}
+
+function submitPost() {
+  const text = document.getElementById('composerText').value.trim();
+  if (!text) { showToast('WRITE SOMETHING FIRST!'); return; }
+
+  const type = attachedType || 'community';
+  const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+  const emoji = USER_AVATARS[Math.floor(Math.random() * USER_AVATARS.length)];
+
+  const TYPE_TAG_COLORS = { event:'#60a5fa', game:'#ffd93d', meetup:'#f9a8d4', community:'#86efac' };
+  const tagColor = TYPE_TAG_COLORS[type];
+
+  const newPost = {
+    id: Date.now(),
+    type,
+    user: { name: 'You', avatar: '👤', color: color+'22', border: color },
+    time: 'just now',
+    body: text,
+    tags: selectedTagOptions.map(o => ({ label: '#'+o.replace(/\s/g,''), color: tagColor })),
+    likes: 0, comments: 0, liked: false, commentList: [],
+  };
+
+  // Add attached card if game/event/meetup selected
+  if (type === 'game' && selectedTagOptions.length > 0) {
+    newPost.score = { game: selectedTagOptions[0], emoji: '🎮', score: '—', detail: 'New game post', rank: '—' };
+  } else if ((type === 'event' || type === 'meetup') && selectedTagOptions.length > 0) {
+    newPost.attached = {
+      type, emoji: type === 'event' ? '📅' : '📍',
+      title: selectedTagOptions[0],
+      sub: 'Just posted',
+      color: tagColor,
+      bg: tagColor+'18',
+      border: tagColor+'44',
+      link: type === 'event' ? 'calendar.html' : 'map.html'
+    };
+  }
+
+  posts.unshift(newPost);
+  renderFeed();
+
+  // Reset composer
+  document.getElementById('composerText').value = '';
+  attachedType = null;
+  selectedTagOptions = [];
+  ['Event','Game','Meetup'].forEach(t => document.getElementById('btn'+t)?.classList.remove('selected'));
+  document.getElementById('tagSelector').classList.remove('open');
+  document.getElementById('tagSelector').innerHTML = '';
+
+  showToast('POST SHARED! 🎉');
+}
+
+// ─── FILTERS & TABS ───────────────────────────────────────────────
+
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderFeed();
+}
+
+function setTab(t, el) {
+  activeTab = t;
+  document.querySelectorAll('.feed-tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  showToast(t.toUpperCase() + ' FEED');
+  renderFeed(); // same data for demo, would be different in prod
+}
+
+function updateCounts() {
+  const realPosts = posts.filter(p => p.type !== 'sponsor');
+  document.getElementById('count-all').textContent = realPosts.length;
+  ['event','game','meetup','community'].forEach(t => {
+    const el = document.getElementById('count-'+t);
+    if (el) el.textContent = realPosts.filter(p => p.type === t).length;
+  });
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────
+renderFeed();
+</script>
+</body>
+</html>

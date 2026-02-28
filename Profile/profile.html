@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d0f14;
+      --surface: #141720;
+      --card: #1c2030;
+      --card-hover: #222840;
+      --border: #2a3050;
+      --accent: #5dfdcb;
+      --accent2: #ff6b6b;
+      --accent3: #ffd93d;
+      --accent4: #a78bfa;
+      --accent5: #60a5fa;
+      --pink: #f9a8d4;
+      --green: #86efac;
+      --text: #e8eaf6;
+      --muted: #5a6080;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+    }
+
+    .bg-fx { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .bg-orb { position: absolute; border-radius: 50%; filter: blur(140px); opacity: 0.08; }
+    .bg-orb.a { width: 600px; height: 600px; top: -200px; left: -100px; background: var(--accent4); }
+    .bg-orb.b { width: 500px; height: 500px; bottom: -100px; right: -100px; background: var(--accent); }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,15,20,0.92);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex; align-items: center; height: 58px; gap: 0;
+    }
+    .nav-brand { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-right: 32px; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 2px; flex: 1; }
+    .nav-link {
+      font-family: 'DM Mono', monospace; font-size: 10px;
+      padding: 7px 14px; border-radius: 6px; color: var(--muted);
+      text-decoration: none; letter-spacing: 2px; transition: all 0.2s; white-space: nowrap;
+    }
+    .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-link.active { color: var(--accent); background: rgba(93,253,203,0.08); }
+
+    /* PAGE */
+    .page {
+      position: relative; z-index: 1;
+      max-width: 1100px; margin: 0 auto;
+      padding: 32px 24px;
+      display: flex; flex-direction: column; gap: 24px;
+    }
+
+    /* PROFILE HERO */
+    .profile-hero {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 24px;
+      align-items: center;
+    }
+
+    @media (max-width: 700px) {
+      .profile-hero { grid-template-columns: 1fr; text-align: center; }
+      .profile-stats { justify-content: center; }
+    }
+
+    .avatar-wrap { position: relative; }
+    .avatar {
+      width: 88px; height: 88px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent4), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      border: 3px solid var(--border);
+      position: relative;
+      flex-shrink: 0;
+    }
+    .avatar-level {
+      position: absolute;
+      bottom: -4px; right: -4px;
+      background: var(--accent3);
+      color: var(--bg);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+      border: 2px solid var(--bg);
+    }
+
+    .profile-info { flex: 1; }
+    .profile-name { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+    .profile-handle {
+      font-family: 'DM Mono', monospace; font-size: 11px;
+      color: var(--accent); letter-spacing: 2px; margin-bottom: 12px;
+    }
+
+    /* XP Bar */
+    .xp-section { margin-top: 8px; }
+    .xp-label {
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: 'DM Mono', monospace; font-size: 10px;
+      color: var(--muted); letter-spacing: 1px; margin-bottom: 6px;
+    }
+    .xp-label span { color: var(--accent3); }
+    .xp-track {
+      height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;
+    }
+    .xp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent3), var(--accent2));
+      border-radius: 4px;
+      transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+      position: relative;
+    }
+    .xp-fill::after {
+      content: '';
+      position: absolute; right: 0; top: 0; bottom: 0;
+      width: 20px;
+      background: rgba(255,255,255,0.3);
+      filter: blur(4px);
+    }
+
+    /* Stats */
+    .profile-stats { display: flex; gap: 20px; flex-wrap: wrap; }
+    .stat-item { text-align: center; }
+    .stat-num { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    .stat-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 2px; margin-top: 2px; }
+
+    /* XP GAIN BUTTON (demo) */
+    .xp-btn {
+      font-family: 'DM Mono', monospace; font-size: 9px;
+      padding: 7px 14px;
+      background: transparent; border: 1px solid var(--accent3);
+      color: var(--accent3); border-radius: 6px; cursor: pointer;
+      letter-spacing: 1px; transition: all 0.2s; white-space: nowrap;
+    }
+    .xp-btn:hover { background: var(--accent3); color: var(--bg); }
+
+    /* TABS */
+    .tabs {
+      display: flex; gap: 2px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 4px;
+    }
+    .tab {
+      font-family: 'DM Mono', monospace; font-size: 10px;
+      padding: 8px 18px; border-radius: 7px; border: none;
+      background: transparent; color: var(--muted);
+      cursor: pointer; letter-spacing: 2px; transition: all 0.2s;
+    }
+    .tab.active { background: var(--card); color: var(--text); }
+
+    /* TAB PANELS */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* SECTION GRID */
+    .section-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 760px) { .section-grid { grid-template-columns: 1fr; } }
+
+    /* PANEL */
+    .panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+    }
+    .panel-header {
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .panel-title {
+      font-family: 'DM Mono', monospace; font-size: 9px;
+      color: var(--accent3); letter-spacing: 3px;
+    }
+    .panel-body { padding: 16px 18px; }
+
+    /* Badge row */
+    .badge-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    .badge-item {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 10px 14px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .badge-item:hover { border-color: var(--accent3); }
+    .badge-item .b-icon { font-size: 24px; }
+    .badge-item .b-name { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); letter-spacing: 1px; }
+    .badge-item.locked { opacity: 0.35; filter: grayscale(1); }
+
+    /* Activity feed */
+    .activity-item {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-icon {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 15px;
+    }
+    .activity-text { flex: 1; font-size: 13px; line-height: 1.5; }
+    .activity-text strong { color: var(--text); }
+    .activity-time { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 3px; }
+
+    /* Game stats */
+    .game-stat-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 9px 0; border-bottom: 1px solid var(--border);
+    }
+    .game-stat-row:last-child { border-bottom: none; }
+    .game-stat-icon { font-size: 20px; width: 28px; text-align: center; }
+    .game-stat-info { flex: 1; }
+    .game-stat-name { font-size: 13px; font-weight: 700; }
+    .game-stat-sub { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 2px; }
+    .game-stat-score { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent3); font-weight: 500; }
+
+    /* ─── JOURNAL SECTION ─── */
+    .journal-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 0;
+      min-height: 560px;
+    }
+    @media (max-width: 760px) { .journal-layout { grid-template-columns: 1fr; } }
+
+    .journal-sidebar {
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+    }
+
+    .journal-sidebar-top {
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+
+    .journal-search {
+      background: var(--card); border: 1px solid var(--border);
+      color: var(--text); font-family: 'Syne', sans-serif; font-size: 12px;
+      padding: 8px 12px; border-radius: 8px; outline: none; width: 100%;
+      transition: border-color 0.2s;
+    }
+    .journal-search:focus { border-color: var(--accent4); }
+    .journal-search::placeholder { color: var(--muted); }
+
+    .journal-new-btn {
+      width: 100%; font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+      padding: 9px; background: transparent; border: 1px solid var(--accent4);
+      color: var(--accent4); border-radius: 8px; cursor: pointer;
+      letter-spacing: 2px; transition: all 0.2s;
+    }
+    .journal-new-btn:hover { background: var(--accent4); color: var(--bg); }
+
+    .journal-streaks {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .streak-pill {
+      font-family: 'DM Mono', monospace; font-size: 9px;
+      padding: 4px 10px; border-radius: 20px; letter-spacing: 1px;
+      background: var(--card); border: 1px solid var(--border); color: var(--muted);
+    }
+    .streak-pill.fire { border-color: #ff6b6b44; color: var(--accent2); background: rgba(255,107,107,0.08); }
+    .streak-pill.gold { border-color: #ffd93d44; color: var(--accent3); background: rgba(255,217,61,0.08); }
+
+    .journal-note-list { flex: 1; overflow-y: auto; }
+    .journal-note-list::-webkit-scrollbar { width: 3px; }
+    .journal-note-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .journal-note-item {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background 0.15s; position: relative;
+    }
+    .journal-note-item:hover { background: var(--card-hover); }
+    .journal-note-item.active { background: var(--card); border-left: 2px solid var(--accent4); }
+    .jni-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .jni-date { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-bottom: 4px; }
+    .jni-preview { font-size: 11px; color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.5; }
+    .jni-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .jni-tag {
+      font-family: 'DM Mono', monospace; font-size: 8px;
+      padding: 2px 7px; border-radius: 20px;
+      background: rgba(167,139,250,0.12); color: var(--accent4);
+      border: 1px solid rgba(167,139,250,0.2); letter-spacing: 1px;
+    }
+    .jni-star { position: absolute; top: 12px; right: 12px; font-size: 12px; }
+
+    /* Journal editor */
+    .journal-editor {
+      display: flex; flex-direction: column;
+    }
+
+    .journal-editor-top {
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+
+    .editor-title-input {
+      flex: 1; background: transparent; border: none;
+      color: var(--text); font-family: 'Syne', sans-serif;
+      font-size: 18px; font-weight: 700; outline: none;
+    }
+    .editor-title-input::placeholder { color: var(--muted); }
+
+    .editor-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+    .ed-btn {
+      font-family: 'DM Mono', monospace; font-size: 9px;
+      padding: 6px 12px; background: transparent;
+      border: 1px solid var(--border); color: var(--muted);
+      border-radius: 6px; cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
+    }
+    .ed-btn:hover { border-color: var(--accent4); color: var(--accent4); }
+    .ed-btn.save { border-color: var(--accent); color: var(--accent); }
+    .ed-btn.save:hover { background: var(--accent); color: var(--bg); }
+    .ed-btn.danger:hover { border-color: var(--accent2); color: var(--accent2); }
+    .ed-btn.star-active { border-color: var(--accent3); color: var(--accent3); }
+
+    .journal-meta-row {
+      padding: 10px 18px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    }
+
+    .meta-field {
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted);
+    }
+    .meta-input {
+      background: transparent; border: none; color: var(--accent5);
+      font-family: 'DM Mono', monospace; font-size: 10px;
+      outline: none; cursor: pointer;
+    }
+    .meta-tags-input {
+      background: transparent; border: none; color: var(--accent4);
+      font-family: 'DM Mono', monospace; font-size: 10px;
+      outline: none; flex: 1; min-width: 120px;
+    }
+    .meta-tags-input::placeholder { color: var(--muted); }
+
+    .prompt-bar {
+      padding: 10px 18px; border-bottom: 1px solid var(--border);
+      background: rgba(167,139,250,0.05);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .prompt-text {
+      font-family: 'DM Mono', monospace; font-size: 10px;
+      color: var(--accent4); letter-spacing: 1px; flex: 1; font-style: italic;
+    }
+    .prompt-insert-btn {
+      font-family: 'DM Mono', monospace; font-size: 8px;
+      padding: 4px 10px; background: transparent;
+      border: 1px solid rgba(167,139,250,0.4); color: var(--accent4);
+      border-radius: 4px; cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .prompt-insert-btn:hover { background: var(--accent4); color: var(--bg); }
+
+    .journal-body-input {
+      flex: 1; background: transparent; border: none;
+      color: var(--text); font-family: 'Syne', sans-serif;
+      font-size: 14px; line-height: 1.8; padding: 18px;
+      outline: none; resize: none; min-height: 280px;
+    }
+    .journal-body-input::placeholder { color: var(--muted); }
+
+    .journal-footer {
+      padding: 10px 18px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted);
+      letter-spacing: 1px;
+    }
+    .save-status { color: var(--accent); }
+
+    .journal-empty {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 12px; padding: 40px;
+      text-align: center;
+    }
+    .journal-empty .em-icon { font-size: 48px; }
+    .journal-empty h3 { font-size: 18px; font-weight: 700; }
+    .journal-empty p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* Calendar mini */
+    .cal-mini-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; padding: 12px 16px;
+    }
+    .cal-label { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); text-align: center; padding: 2px 0; letter-spacing: 1px; }
+    .cal-cell {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer;
+      transition: all 0.15s; position: relative;
+    }
+    .cal-cell:hover { background: var(--card-hover); }
+    .cal-cell.today { border: 1px solid var(--accent); color: var(--accent); }
+    .cal-cell.has-entry::after {
+      content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+      width: 4px; height: 4px; border-radius: 50%; background: var(--accent4);
+    }
+    .cal-cell.empty { opacity: 0; pointer-events: none; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--card); border: 1px solid var(--accent); color: var(--accent);
+      font-family: 'DM Mono', monospace; font-size: 11px;
+      padding: 12px 20px; border-radius: 8px; letter-spacing: 2px;
+      z-index: 9999; transition: transform 0.3s ease;
+      box-shadow: 0 0 20px rgba(93,253,203,0.2);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Leveled up flash */
+    @keyframes levelFlash {
+      0% { opacity: 0; transform: scale(0.8); }
+      30% { opacity: 1; transform: scale(1.05); }
+      100% { opacity: 0; transform: scale(1); }
+    }
+    .level-up-banner {
+      position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--accent3), var(--accent2));
+      color: var(--bg); font-family: 'DM Mono', monospace; font-weight: 700;
+      font-size: 14px; padding: 14px 28px; border-radius: 12px;
+      letter-spacing: 2px; z-index: 9999;
+      animation: levelFlash 2.5s ease forwards;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-fx">
+  <div class="bg-orb a"></div>
+  <div class="bg-orb b"></div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">Valley<span>Link</span></div>
+  <div class="nav-links">
+    <a href="feed.html" class="nav-link">FEED</a>
+    <a href="map.html" class="nav-link">MAP</a>
+    <a href="calendar.html" class="nav-link">EVENTS</a>
+    <a href="games.html" class="nav-link">GAMES</a>
+    <a href="profile.html" class="nav-link active">PROFILE</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- ── PROFILE HERO ── -->
+  <div class="profile-hero">
+    <div class="avatar-wrap">
+      <div class="avatar">👤</div>
+      <div class="avatar-level" id="levelBadge">LVL 1</div>
+    </div>
+
+    <div class="profile-info">
+      <div class="profile-name" id="profileName">Camor</div>
+      <div class="profile-handle">@camor · Boise, ID</div>
+      <div class="xp-section">
+        <div class="xp-label">
+          <span>XP PROGRESS</span>
+          <span id="xpLabel">0 / 1000 XP</span>
+        </div>
+        <div class="xp-track">
+          <div class="xp-fill" id="xpFill" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:14px">
+      <div class="profile-stats">
+        <div class="stat-item">
+          <div class="stat-num" style="color:var(--accent)">24</div>
+          <div class="stat-label">EVENTS</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" style="color:var(--accent3)">138</div>
+          <div class="stat-label">GAMES</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" style="color:var(--pink)">11</div>
+          <div class="stat-label">MEETUPS</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="xp-btn" onclick="demoGainXP(250)">+250 XP</button>
+        <button class="xp-btn" onclick="demoGainXP(500)">+500 XP</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TABS ── -->
+  <div class="tabs">
+    <button class="tab active" onclick="setTab('overview', this)">OVERVIEW</button>
+    <button class="tab" onclick="setTab('games', this)">GAMES</button>
+    <button class="tab" onclick="setTab('journal', this)">JOURNAL</button>
+    <button class="tab" onclick="setTab('activity', this)">ACTIVITY</button>
+  </div>
+
+  <!-- ── OVERVIEW TAB ── -->
+  <div class="tab-panel active" id="tab-overview">
+    <div class="section-grid">
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">▸ BADGES EARNED</span>
+          <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">6 / 12</span>
+        </div>
+        <div class="panel-body">
+          <div class="badge-grid">
+            <div class="badge-item"><span class="b-icon">🎮</span><span class="b-name">GAMER</span></div>
+            <div class="badge-item"><span class="b-icon">🗺️</span><span class="b-name">EXPLORER</span></div>
+            <div class="badge-item"><span class="b-icon">🤝</span><span class="b-name">CONNECTOR</span></div>
+            <div class="badge-item"><span class="b-icon">🏆</span><span class="b-name">WINNER</span></div>
+            <div class="badge-item"><span class="b-icon">📅</span><span class="b-name">EVENTGOER</span></div>
+            <div class="badge-item"><span class="b-icon">✍️</span><span class="b-name">JOURNALER</span></div>
+            <div class="badge-item locked"><span class="b-icon">🔥</span><span class="b-name">STREAK 30</span></div>
+            <div class="badge-item locked"><span class="b-icon">👑</span><span class="b-name">TOP PLAYER</span></div>
+            <div class="badge-item locked"><span class="b-icon">🌍</span><span class="b-name">TRAVELER</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">▸ RECENT ACTIVITY</span></div>
+        <div class="panel-body">
+          <div class="activity-item">
+            <div class="activity-icon" style="background:rgba(255,217,61,0.15);color:var(--accent3)">🏆</div>
+            <div class="activity-text">
+              <strong>Won Chess match</strong> vs QueenMoves — +150 XP
+              <div class="activity-time">2 HOURS AGO</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon" style="background:rgba(96,165,250,0.15);color:var(--accent5)">📅</div>
+            <div class="activity-text">
+              <strong>RSVPed to Jazz Night</strong> at Riverside Bar
+              <div class="activity-time">5 HOURS AGO</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon" style="background:rgba(167,139,250,0.15);color:var(--accent4)">✍️</div>
+            <div class="activity-text">
+              <strong>Journal entry written</strong> — 3 day streak!
+              <div class="activity-time">YESTERDAY</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon" style="background:rgba(249,168,212,0.15);color:var(--pink)">📍</div>
+            <div class="activity-text">
+              <strong>Created meetup</strong> — Casual Chess at Julia Davis Park
+              <div class="activity-time">2 DAYS AGO</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon" style="background:rgba(93,253,203,0.15);color:var(--accent)">🗺️</div>
+            <div class="activity-text">
+              <strong>Checked in</strong> at Camel's Back Park
+              <div class="activity-time">3 DAYS AGO</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── GAMES TAB ── -->
+  <div class="tab-panel" id="tab-games">
+    <div class="section-grid">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">▸ GAME STATS</span></div>
+        <div class="panel-body">
+          <div class="game-stat-row">
+            <span class="game-stat-icon">♟️</span>
+            <div class="game-stat-info">
+              <div class="game-stat-name">Chess</div>
+              <div class="game-stat-sub">W: 18 · L: 7 · D: 3</div>
+            </div>
+            <span class="game-stat-score">72% WR</span>
+          </div>
+          <div class="game-stat-row">
+            <span class="game-stat-icon">🔴</span>
+            <div class="game-stat-info">
+              <div class="game-stat-name">Connect 4</div>
+              <div class="game-stat-sub">W: 31 · L: 14</div>
+            </div>
+            <span class="game-stat-score">68% WR</span>
+          </div>
+          <div class="game-stat-row">
+            <span class="game-stat-icon">🟦</span>
+            <div class="game-stat-info">
+              <div class="game-stat-name">Tetris</div>
+              <div class="game-stat-sub">Best: 38,400 · Avg: 22,100</div>
+            </div>
+            <span class="game-stat-score">#3 RANK</span>
+          </div>
+          <div class="game-stat-row">
+            <span class="game-stat-icon">🃏</span>
+            <div class="game-stat-info">
+              <div class="game-stat-name">Poker</div>
+              <div class="game-stat-sub">15 sessions played</div>
+            </div>
+            <span class="game-stat-score">+$480</span>
+          </div>
+          <div class="game-stat-row">
+            <span class="game-stat-icon">🪢</span>
+            <div class="game-stat-info">
+              <div class="game-stat-name">Hangman</div>
+              <div class="game-stat-sub">Solved: 47 · Failed: 12</div>
+            </div>
+            <span class="game-stat-score">80% SOLVE</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">▸ XP BREAKDOWN</span></div>
+        <div class="panel-body" style="display:flex;flex-direction:column;gap:14px">
+          <div>
+            <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:6px">
+              <span>GAMES</span><span style="color:var(--accent3)">2,400 XP</span>
+            </div>
+            <div class="xp-track"><div class="xp-fill" style="width:80%;background:linear-gradient(90deg,var(--accent3),var(--accent2))"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:6px">
+              <span>EVENTS</span><span style="color:var(--accent5)">1,200 XP</span>
+            </div>
+            <div class="xp-track"><div class="xp-fill" style="width:40%;background:linear-gradient(90deg,var(--accent5),var(--accent4))"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:6px">
+              <span>MEETUPS</span><span style="color:var(--pink)">550 XP</span>
+            </div>
+            <div class="xp-track"><div class="xp-fill" style="width:18%;background:linear-gradient(90deg,var(--pink),var(--accent2))"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:6px">
+              <span>JOURNAL STREAK</span><span style="color:var(--accent4)">300 XP</span>
+            </div>
+            <div class="xp-track"><div class="xp-fill" style="width:10%;background:linear-gradient(90deg,var(--accent4),var(--accent))"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── JOURNAL TAB ── -->
+  <div class="tab-panel" id="tab-journal">
+    <div class="panel" style="overflow:hidden">
+      <div class="journal-layout">
+
+        <!-- Journal sidebar -->
+        <div class="journal-sidebar">
+          <div class="journal-sidebar-top">
+            <div class="journal-streaks">
+              <span class="streak-pill fire" id="currentStreakPill">🔥 0 day streak</span>
+              <span class="streak-pill gold" id="bestStreakPill">🏆 best 0</span>
+            </div>
+            <input class="journal-search" id="journalSearch" placeholder="Search entries..." oninput="filterNotes()" />
+            <button class="journal-new-btn" onclick="newNote()">+ NEW ENTRY</button>
+          </div>
+
+          <!-- Mini calendar -->
+          <div style="border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px 4px">
+              <button onclick="calPrev()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">‹</button>
+              <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px" id="calMonthLabel"></span>
+              <button onclick="calNext()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">›</button>
+            </div>
+            <div class="cal-mini-grid" id="calGrid"></div>
+          </div>
+
+          <div class="journal-note-list" id="noteList"></div>
+        </div>
+
+        <!-- Journal editor -->
+        <div class="journal-editor" id="journalEditor">
+          <div class="journal-empty" id="journalEmpty">
+            <span class="em-icon">📓</span>
+            <h3>Your Journal</h3>
+            <p>Write about events you attended, games you played, meetups you created, or whatever's on your mind.<br><br>Entries are saved locally to your browser.</p>
+            <button class="journal-new-btn" style="width:auto;padding:10px 24px" onclick="newNote()">+ START WRITING</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ACTIVITY TAB ── -->
+  <div class="tab-panel" id="tab-activity">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">▸ FULL ACTIVITY LOG</span></div>
+      <div class="panel-body">
+        <div class="activity-item">
+          <div class="activity-icon" style="background:rgba(255,217,61,0.15);color:var(--accent3)">🏆</div>
+          <div class="activity-text"><strong>Won Chess match</strong> vs QueenMoves — +150 XP<div class="activity-time">TODAY · 2:14 PM</div></div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:rgba(96,165,250,0.15);color:var(--accent5)">📅</div>
+          <div class="activity-text"><strong>RSVPed to Jazz Night</strong> at Riverside Bar — +50 XP<div class="activity-time">TODAY · 10:32 AM</div></div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:rgba(167,139,250,0.15);color:var(--accent4)">✍️</div>
+          <div class="activity-text"><strong>Journal entry written</strong> — Day 3 streak! +75 XP<div class="activity-time">YESTERDAY · 9:45 PM</div></div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:rgba(249,168,212,0.15);color:var(--pink)">📍</div>
+          <div class="activity-text"><strong>Created meetup</strong> — Casual Chess at Julia Davis Park — +100 XP<div class="activity-time">2 DAYS AGO</div></div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:rgba(93,253,203,0.15);color:var(--accent)">🗺️</div>
+          <div class="activity-text"><strong>Checked in</strong> at Camel's Back Park — +30 XP<div class="activity-time">3 DAYS AGO</div></div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:rgba(255,107,107,0.15);color:var(--accent2)">🔴</div>
+          <div class="activity-text"><strong>Connect 4 win streak: 8–0</strong> — +200 XP<div class="activity-time">4 DAYS AGO</div></div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:rgba(93,253,203,0.15);color:var(--accent5)">🟦</div>
+          <div class="activity-text"><strong>Tetris high score: 38,400</strong> — New personal best! +300 XP<div class="activity-time">5 DAYS AGO</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// PROFILE CLASS (your original code, enhanced for UI)
+// ══════════════════════════════════════════════════════
+
+class Profile {
+  level = 0;
+
+  constructor(obj) {
+    this.name = obj.name;
+    this.xp = obj.xp === undefined ? 0 : obj.xp;
+  }
+
+  nextLevelXP() {
+    return 1000 + 500 * this.level;
+  }
+
+  checkLevel() {
+    let levelxp = this.nextLevelXP();
+    if (this.xp >= levelxp) {
+      this.xp -= levelxp;
+      this.level++;
+      showLevelUp(this.level);
+      this.checkLevel();
+    }
+  }
+
+  gainXP(xp) {
+    this.xp += xp;
+    this.checkLevel();
+    this.renderUI();
+    showToast(`+${xp} XP EARNED!`);
+  }
+
+  renderUI() {
+    document.getElementById('profileName').textContent = this.name;
+    document.getElementById('levelBadge').textContent = `LVL ${this.level}`;
+    document.getElementById('xpLabel').textContent = `${this.xp} / ${this.nextLevelXP()} XP`;
+    const pct = Math.min(100, (this.xp / this.nextLevelXP()) * 100);
+    document.getElementById('xpFill').style.width = pct + '%';
+  }
+
+  printProfile() {
+    console.log("Name: " + this.name);
+    console.log("XP: " + this.xp);
+    console.log("Level: " + this.level);
+    console.log("Progress: " + this.xp + "/" + this.nextLevelXP());
+  }
+}
+
+const currentProfile = new Profile({ name: "Camor" });
+currentProfile.gainXP(1500);
+currentProfile.printProfile();
+
+function demoGainXP(amount) {
+  currentProfile.gainXP(amount);
+}
+
+// ══════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════
+
+function setTab(id, el) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  el.classList.add('active');
+  if (id === 'journal') renderCalendar();
+}
+
+// ══════════════════════════════════════════════════════
+// JOURNAL — Data layer (localStorage, mirrors React version)
+// ══════════════════════════════════════════════════════
+
+const STORAGE_NOTES = 'vl_journal_notes_v1';
+const STORAGE_KEY_FOLDERS = 'vl_journal_folders_v1';
+
+let notes = [];
+let selectedNoteId = null;
+let saveTimer = null;
+let draft = { title: '', body: '', tags: '', date: todayYMD() };
+
+// Daily prompts (deterministic)
+const DAILY_PROMPTS = [
+  "What made today feel meaningful?",
+  "What's one small win you had today?",
+  "What drained your energy today — and what replenished it?",
+  "What are you grateful for right now?",
+  "What are you avoiding, and why?",
+  "If today had a headline, what would it be?",
+  "What did you learn today?",
+  "What would you do differently if you could replay today?",
+  "What's one thing you want to remember from today?",
+  "What's one step you can take tomorrow to make life easier?",
+  "What did you do today that you're proud of?",
+  "Who (or what) influenced your mood today?",
+  "What's one fear you faced today?",
+  "Describe today using three words.",
+  "What's one thought you'd like to let go of?",
+  "What's something you're looking forward to?",
+];
+
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function promptForDate(dateStr) {
+  return DAILY_PROMPTS[hashStr(dateStr) % DAILY_PROMPTS.length];
+}
+
+function todayYMD() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function uid() { return Math.random().toString(16).slice(2) + Date.now().toString(16); }
+
+function loadNotes() {
+  try {
+    const raw = localStorage.getItem(STORAGE_NOTES);
+    if (raw) notes = JSON.parse(raw);
+  } catch(e) { notes = []; }
+}
+
+function saveNotes() {
+  localStorage.setItem(STORAGE_NOTES, JSON.stringify(notes));
+}
+
+// ── Streaks ──
+function getDatesWithEntries() {
+  const set = new Set();
+  notes.forEach(n => { if ((n.body||'').trim()) set.add(n.date); });
+  return set;
+}
+
+function computeStreaks() {
+  const has = getDatesWithEntries();
+  let cur = 0, d = todayYMD();
+  while (has.has(d)) { cur++; d = addDays(d, -1); }
+
+  const list = Array.from(has).sort();
+  let best = 0, run = 0;
+  for (let i = 0; i < list.length; i++) {
+    run = (i > 0 && list[i] === addDays(list[i-1], 1)) ? run + 1 : 1;
+    best = Math.max(best, run);
+  }
+  return { cur, best };
+}
+
+function addDays(ymdStr, delta) {
+  const [y,m,d] = ymdStr.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  dt.setDate(dt.getDate() + delta);
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+
+function updateStreakUI() {
+  const { cur, best } = computeStreaks();
+  document.getElementById('currentStreakPill').textContent = `🔥 ${cur} day streak`;
+  document.getElementById('bestStreakPill').textContent = `🏆 best ${best}`;
+}
+
+// ── Note list render ──
+function filterNotes() {
+  const q = (document.getElementById('journalSearch').value || '').toLowerCase();
+  const filtered = notes.filter(n =>
+    !q || (n.title+' '+n.body+' '+n.tags).toLowerCase().includes(q)
+  ).sort((a, b) => (b.updatedAt||'').localeCompare(a.updatedAt||''));
+
+  const list = document.getElementById('noteList');
+  list.innerHTML = '';
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div style="padding:20px;text-align:center;font-size:12px;color:var(--muted)">No entries found</div>`;
+    return;
+  }
+
+  filtered.forEach(n => {
+    const div = document.createElement('div');
+    div.className = 'journal-note-item' + (n.id === selectedNoteId ? ' active' : '');
+    div.onclick = () => selectNote(n.id);
+
+    const tags = (n.tags||'').split(',').map(t=>t.trim()).filter(Boolean);
+    div.innerHTML = `
+      <div class="jni-title">${n.title || 'Untitled'}</div>
+      <div class="jni-date">${n.date || ''}</div>
+      <div class="jni-preview">${(n.body||'').slice(0,100)}</div>
+      ${tags.length ? `<div class="jni-tags">${tags.map(t=>`<span class="jni-tag">#${t}</span>`).join('')}</div>` : ''}
+      ${n.starred ? '<span class="jni-star">⭐</span>' : ''}
+    `;
+    list.appendChild(div);
+  });
+}
+
+// ── Select note ──
+function selectNote(id) {
+  selectedNoteId = id;
+  const note = notes.find(n => n.id === id);
+  if (!note) return;
+  draft = { title: note.title||'', body: note.body||'', tags: note.tags||'', date: note.date||todayYMD() };
+  renderEditor(note);
+  filterNotes();
+}
+
+// ── New note ──
+function newNote(date) {
+  const note = {
+    id: uid(),
+    title: 'New Entry',
+    body: '',
+    tags: '',
+    starred: false,
+    date: date || todayYMD(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  notes.unshift(note);
+  saveNotes();
+  selectNote(note.id);
+  filterNotes();
+  updateStreakUI();
+  renderCalendar();
+  // Give XP for journaling
+  currentProfile.gainXP(25);
+}
+
+// ── Delete note ──
+function deleteNote(id) {
+  if (!confirm('Delete this entry?')) return;
+  notes = notes.filter(n => n.id !== id);
+  saveNotes();
+  selectedNoteId = null;
+  filterNotes();
+  updateStreakUI();
+  renderCalendar();
+  document.getElementById('journalEditor').innerHTML = `<div id="journalEmpty" class="journal-empty">
+    <span class="em-icon">📓</span><h3>Entry deleted</h3>
+    <p>Create a new entry to keep writing.</p>
+    <button class="journal-new-btn" style="width:auto;padding:10px 24px" onclick="newNote()">+ NEW ENTRY</button>
+  </div>`;
+}
+
+// ── Render editor ──
+function renderEditor(note) {
+  const editor = document.getElementById('journalEditor');
+  const prompt = promptForDate(note.date || todayYMD());
+
+  editor.innerHTML = `
+    <div class="journal-editor-top">
+      <input class="editor-title-input" id="edTitle" value="${escHtml(note.title||'')}" placeholder="Entry title..." oninput="scheduleSave()" />
+      <div class="editor-actions">
+        <button class="ed-btn ${note.starred ? 'star-active' : ''}" onclick="toggleStar('${note.id}')">${note.starred ? '⭐ STARRED' : '☆ STAR'}</button>
+        <button class="ed-btn save" onclick="flushSave()">SAVE</button>
+        <button class="ed-btn danger" onclick="deleteNote('${note.id}')">✕</button>
+      </div>
+    </div>
+
+    <div class="journal-meta-row">
+      <div class="meta-field">📅
+        <input class="meta-input" id="edDate" type="date" value="${note.date||todayYMD()}" onchange="scheduleSave()" />
+      </div>
+      <div class="meta-field" style="flex:1">
+        🏷 <input class="meta-tags-input" id="edTags" value="${escHtml(note.tags||'')}" placeholder="tags: event, chess, meetup" oninput="scheduleSave()" />
+      </div>
+    </div>
+
+    <div class="prompt-bar">
+      <span class="prompt-text">💡 Today's prompt: ${prompt}</span>
+      <button class="prompt-insert-btn" onclick="insertPrompt()">INSERT →</button>
+    </div>
+
+    <textarea class="journal-body-input" id="edBody" placeholder="Write your entry... what happened today? What are you feeling? Any games, events, or meetups worth remembering?" oninput="scheduleSave()">${escHtml(note.body||'')}</textarea>
+
+    <div class="journal-footer">
+      <span id="saveStatus" class="save-status">● SAVED</span>
+      <span style="margin-left:auto">CTRL+S TO SAVE</span>
+    </div>
+  `;
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleStar(id) {
+  const note = notes.find(n => n.id === id);
+  if (!note) return;
+  note.starred = !note.starred;
+  saveNotes();
+  renderEditor(note);
+  filterNotes();
+  showToast(note.starred ? '⭐ ENTRY STARRED!' : 'STAR REMOVED');
+}
+
+function insertPrompt() {
+  const ta = document.getElementById('edBody');
+  if (!ta) return;
+  const note = notes.find(n => n.id === selectedNoteId);
+  const prompt = promptForDate(note?.date || todayYMD());
+  const pre = ta.value.trim();
+  ta.value = pre ? ta.value + `\n\n---\nPrompt: ${prompt}\n\n` : `Prompt: ${prompt}\n\n`;
+  scheduleSave();
+  ta.focus();
+}
+
+// ── Autosave ──
+function scheduleSave() {
+  const status = document.getElementById('saveStatus');
+  if (status) { status.textContent = '● SAVING...'; status.style.color = 'var(--accent3)'; }
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushSave, 700);
+}
+
+function flushSave() {
+  if (!selectedNoteId) return;
+  const note = notes.find(n => n.id === selectedNoteId);
+  if (!note) return;
+
+  const titleEl = document.getElementById('edTitle');
+  const bodyEl = document.getElementById('edBody');
+  const tagsEl = document.getElementById('edTags');
+  const dateEl = document.getElementById('edDate');
+
+  if (titleEl) note.title = titleEl.value.trim() || 'Untitled';
+  if (bodyEl) note.body = bodyEl.value;
+  if (tagsEl) note.tags = tagsEl.value;
+  if (dateEl) note.date = dateEl.value;
+  note.updatedAt = new Date().toISOString();
+
+  saveNotes();
+  updateStreakUI();
+  renderCalendar();
+  filterNotes();
+
+  const status = document.getElementById('saveStatus');
+  if (status) { status.textContent = '● SAVED'; status.style.color = 'var(--accent)'; }
+}
+
+// ── Keyboard shortcut ──
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    flushSave();
+  }
+});
+
+// ══════════════════════════════════════════════════════
+// MINI CALENDAR
+// ══════════════════════════════════════════════════════
+
+let calDate = new Date();
+
+function renderCalendar() {
+  const year = calDate.getFullYear();
+  const month = calDate.getMonth();
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('calMonthLabel').textContent = `${months[month]} ${year}`;
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const entryDates = getDatesWithEntries();
+  const today = todayYMD();
+
+  const grid = document.getElementById('calGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  ['S','M','T','W','T','F','S'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-label'; el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-cell empty'; el.textContent = '';
+    grid.appendChild(el);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const el = document.createElement('div');
+    el.className = 'cal-cell';
+    if (dateStr === today) el.classList.add('today');
+    if (entryDates.has(dateStr)) el.classList.add('has-entry');
+    el.textContent = d;
+    el.onclick = () => jumpToDay(dateStr);
+    grid.appendChild(el);
+  }
+}
+
+function calPrev() {
+  calDate = new Date(calDate.getFullYear(), calDate.getMonth()-1, 1);
+  renderCalendar();
+}
+
+function calNext() {
+  calDate = new Date(calDate.getFullYear(), calDate.getMonth()+1, 1);
+  renderCalendar();
+}
+
+function jumpToDay(dateStr) {
+  const existing = notes.find(n => n.date === dateStr);
+  if (existing) { selectNote(existing.id); }
+  else { newNote(dateStr); }
+}
+
+// ══════════════════════════════════════════════════════
+// TOAST & LEVEL UP
+// ══════════════════════════════════════════════════════
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function showLevelUp(level) {
+  const el = document.createElement('div');
+  el.className = 'level-up-banner';
+  el.textContent = `🏆 LEVEL UP! YOU ARE NOW LEVEL ${level}`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+// ══════════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════════
+loadNotes();
+updateStreakUI();
+filterNotes();
+renderCalendar();
+</script>
+</body>
+</html>
