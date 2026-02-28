@@ -1,0 +1,1487 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Local Events Calendar</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f5f0e8;
+      --surface: #fff;
+      --card: #fffdf9;
+      --border: #e0d8c8;
+      --accent: #c84b2f;
+      --accent2: #2f6bc8;
+      --accent3: #2fa87a;
+      --text: #1a1510;
+      --muted: #8a7e6e;
+      --avail: #2fa87a22;
+      --avail-border: #2fa87a;
+      --tag-bg: #f0ebe0;
+    }
+
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+    }
+
+
+    /* Grain texture */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.5;
+    }
+
+
+    /* ─── Header ─── */
+    header {
+      background: var(--text);
+      color: var(--bg);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+
+    .header-left h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+
+
+    .header-left p {
+      font-size: 12px;
+      color: #a09080;
+      margin-top: 4px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+
+    .location-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-size: 13px;
+      color: #d0c8b8;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 220px;
+    }
+
+
+    .location-bar:hover { background: rgba(255,255,255,0.14); }
+
+
+    .location-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent3);
+      box-shadow: 0 0 6px var(--accent3);
+      flex-shrink: 0;
+      animation: blink 2s ease infinite;
+    }
+
+
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+
+    .btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 9px 18px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: none;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #d0c8b8;
+    }
+    .btn-outline:hover { background: rgba(255,255,255,0.1); }
+
+
+    .btn-accent {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-accent:hover { background: #b03a22; box-shadow: 0 4px 12px rgba(200,75,47,0.4); }
+
+
+    .btn-green {
+      background: var(--accent3);
+      color: #fff;
+    }
+    .btn-green:hover { background: #239060; }
+
+
+    /* ─── Layout ─── */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 0;
+      min-height: calc(100vh - 80px);
+    }
+
+
+    /* ─── Sidebar ─── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+
+    .sidebar-section h3 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 15px;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+
+
+    /* Mini calendar */
+    .mini-cal {
+      width: 100%;
+    }
+
+
+    .mini-cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+
+    .mini-cal-header span {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+
+    .mini-nav {
+      background: none;
+      border: 1px solid var(--border);
+      width: 26px; height: 26px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .mini-nav:hover { background: var(--bg); color: var(--text); }
+
+
+    .mini-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      text-align: center;
+    }
+
+
+    .mini-day-label {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--muted);
+      padding: 4px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+
+    .mini-day {
+      font-size: 11px;
+      padding: 5px 2px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s;
+      position: relative;
+      color: var(--text);
+    }
+
+
+    .mini-day:hover { background: var(--bg); }
+    .mini-day.other-month { color: #ccc; }
+    .mini-day.today { font-weight: 700; color: var(--accent); }
+    .mini-day.selected { background: var(--text); color: #fff !important; }
+    .mini-day.has-event::after {
+      content: '';
+      position: absolute;
+      bottom: 2px; left: 50%;
+      transform: translateX(-50%);
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .mini-day.available { background: var(--avail); }
+    .mini-day.available.selected { background: var(--text); }
+
+
+    /* Availability setter */
+    .avail-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      text-align: center;
+    }
+
+
+    .avail-day-btn {
+      font-size: 9px;
+      font-weight: 600;
+      padding: 8px 4px;
+      border-radius: 3px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      transition: all 0.15s;
+      text-transform: uppercase;
+    }
+
+
+    .avail-day-btn.active {
+      background: var(--avail);
+      border-color: var(--avail-border);
+      color: var(--accent3);
+    }
+
+
+    .time-range {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+
+    .time-range label { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+
+
+    .time-range select {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+      flex: 1;
+    }
+
+
+    .avail-note {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+
+
+    /* Filter tags */
+    .filter-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+
+    .filter-tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--tag-bg);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+
+    .filter-tag.active {
+      background: var(--text);
+      color: #fff;
+      border-color: var(--text);
+    }
+
+
+    .filter-tag.cat-sports.active { background: #2f6bc8; border-color: #2f6bc8; }
+    .filter-tag.cat-music.active { background: #c84b2f; border-color: #c84b2f; }
+    .filter-tag.cat-food.active { background: #e07b20; border-color: #e07b20; }
+    .filter-tag.cat-arts.active { background: #8b2fc8; border-color: #8b2fc8; }
+    .filter-tag.cat-community.active { background: #2fa87a; border-color: #2fa87a; }
+    .filter-tag.cat-outdoor.active { background: #5a9e2f; border-color: #5a9e2f; }
+
+
+    .connect-cal-btn {
+      width: 100%;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 10px;
+      border: 1px dashed var(--border);
+      background: transparent;
+      border-radius: 4px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .connect-cal-btn:hover {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      background: rgba(47,107,200,0.05);
+    }
+
+
+    /* ─── Main Content ─── */
+    .main-content {
+      padding: 28px 32px;
+    }
+
+
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+
+    .cal-nav {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+
+    .cal-nav-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      width: 34px; height: 34px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .cal-nav-btn:hover { background: var(--text); color: #fff; }
+
+
+    .cal-month-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 26px;
+      letter-spacing: -0.5px;
+    }
+
+
+    .view-toggle {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+
+    .view-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 7px 14px;
+      background: var(--surface);
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.15s;
+    }
+    .view-btn.active { background: var(--text); color: #fff; }
+
+
+    /* ─── Calendar Grid ─── */
+    .cal-grid {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+
+    .cal-day-headers {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      background: var(--text);
+      color: #fff;
+    }
+
+
+    .cal-day-header {
+      padding: 10px;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+
+    .cal-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+
+
+    .cal-day {
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      min-height: 110px;
+      padding: 8px;
+      cursor: pointer;
+      transition: background 0.1s;
+      position: relative;
+    }
+
+
+    .cal-day:nth-child(7n) { border-right: none; }
+    .cal-day:hover { background: #faf6ee; }
+
+
+    .cal-day.other-month { background: #faf8f4; }
+    .cal-day.other-month .day-num { color: #ccc; }
+    .cal-day.today { background: #fff8f5; }
+    .cal-day.today .day-num { color: var(--accent); font-weight: 700; }
+    .cal-day.available-day { background: #f0faf6; }
+    .cal-day.selected-day { background: #f0f4ff; outline: 2px solid var(--accent2); outline-offset: -2px; }
+
+
+    .day-num {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+
+    .day-events {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+
+    .event-chip {
+      font-size: 9px;
+      font-weight: 600;
+      padding: 2px 5px;
+      border-radius: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      color: #fff;
+    }
+    .event-chip:hover { opacity: 0.8; }
+
+
+    .more-events {
+      font-size: 9px;
+      color: var(--muted);
+      font-weight: 600;
+      padding: 1px 3px;
+    }
+
+
+    .avail-badge {
+      position: absolute;
+      top: 6px; right: 6px;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent3);
+    }
+
+
+    /* ─── List View ─── */
+    .list-view { display: none; flex-direction: column; gap: 16px; }
+    .list-view.active { display: flex; }
+
+
+    .list-day-group { }
+
+
+    .list-day-label {
+      font-family: 'DM Serif Display', serif;
+      font-size: 14px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+
+    .list-day-label .avail-pill {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+      padding: 2px 8px;
+      background: var(--avail);
+      color: var(--accent3);
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+
+    .list-event {
+      display: flex;
+      gap: 16px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      border-left: 3px solid currentColor;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 8px;
+    }
+    .list-event:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); transform: translateX(2px); }
+
+
+    .list-event-time {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      min-width: 60px;
+      padding-top: 2px;
+    }
+
+
+    .list-event-body { flex: 1; }
+    .list-event-body h4 { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .list-event-body p { font-size: 12px; color: var(--muted); }
+
+
+    .list-event-cat {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      align-self: flex-start;
+      color: #fff;
+    }
+
+
+    /* ─── Event Detail Modal ─── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26,21,16,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+
+    .modal {
+      background: var(--surface);
+      border-radius: 6px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 85vh;
+      overflow-y: auto;
+      transform: translateY(16px);
+      transition: transform 0.25s;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+
+
+    .modal-color-bar { height: 4px; border-radius: 6px 6px 0 0; }
+
+
+    .modal-body { padding: 24px; }
+
+
+    .modal-cat {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+
+
+    .modal-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 24px;
+      margin-bottom: 16px;
+      line-height: 1.2;
+    }
+
+
+    .modal-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+
+    .modal-meta-row {
+      display: flex;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      align-items: flex-start;
+    }
+
+
+    .modal-meta-icon { font-size: 14px; flex-shrink: 0; }
+
+
+    .modal-desc {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text);
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      margin-bottom: 20px;
+    }
+
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+
+    .modal-close-btn {
+      position: absolute;
+      top: 16px; right: 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted);
+      transition: all 0.15s;
+    }
+    .modal-close-btn:hover { background: var(--text); color: #fff; }
+
+
+    /* ─── Location Modal ─── */
+    .location-modal { max-width: 400px; }
+
+
+    .location-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+
+    .location-option {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .location-option:hover { border-color: var(--accent2); background: rgba(47,107,200,0.04); }
+
+
+    .location-option-icon { font-size: 22px; }
+
+
+    .location-option-text h4 { font-size: 13px; font-weight: 600; }
+    .location-option-text p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+
+    .location-input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+
+    .location-input {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--text);
+      flex: 1;
+    }
+    .location-input:focus { outline: none; border-color: var(--accent2); }
+
+
+    /* ─── Toast ─── */
+    .toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: var(--text);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      z-index: 500;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      max-width: 280px;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .main-layout { grid-template-columns: 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+      .main-content { padding: 20px 16px; }
+      header { padding: 16px 20px; }
+      .cal-day { min-height: 70px; }
+    }
+  </style>
+</head>
+<body>
+
+
+<!-- Header -->
+<header>
+  <div class="header-left">
+    <h1>Local Events</h1>
+    <p>Community Calendar</p>
+  </div>
+  <div class="location-bar" onclick="openLocationModal()">
+    <div class="location-dot"></div>
+    <span id="locationLabel">Detecting location...</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-outline" onclick="openLocationModal()">📍 Change Location</button>
+    <button class="btn btn-accent" onclick="showToast('Event submission coming soon!')">+ Add Event</button>
+  </div>
+</header>
+
+
+<div class="main-layout">
+
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+
+    <!-- Mini Calendar -->
+    <div class="sidebar-section">
+      <h3>Navigate</h3>
+      <div class="mini-cal">
+        <div class="mini-cal-header">
+          <button class="mini-nav" onclick="miniNav(-1)">‹</button>
+          <span id="miniMonthLabel"></span>
+          <button class="mini-nav" onclick="miniNav(1)">›</button>
+        </div>
+        <div class="mini-cal-grid" id="miniCalGrid">
+          <div class="mini-day-label">Su</div>
+          <div class="mini-day-label">Mo</div>
+          <div class="mini-day-label">Tu</div>
+          <div class="mini-day-label">We</div>
+          <div class="mini-day-label">Th</div>
+          <div class="mini-day-label">Fr</div>
+          <div class="mini-day-label">Sa</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Availability -->
+    <div class="sidebar-section">
+      <h3>My Availability</h3>
+      <div class="avail-grid" id="availGrid">
+        <button class="avail-day-btn" data-day="0">Su</button>
+        <button class="avail-day-btn" data-day="1">Mo</button>
+        <button class="avail-day-btn" data-day="2">Tu</button>
+        <button class="avail-day-btn" data-day="3">We</button>
+        <button class="avail-day-btn" data-day="4">Th</button>
+        <button class="avail-day-btn" data-day="5">Fr</button>
+        <button class="avail-day-btn" data-day="6">Sa</button>
+      </div>
+      <div class="time-range">
+        <label>From</label>
+        <select id="availStart">
+          <option value="6">6:00 AM</option><option value="7">7:00 AM</option>
+          <option value="8">8:00 AM</option><option value="9">9:00 AM</option>
+          <option value="10">10:00 AM</option><option value="11">11:00 AM</option>
+          <option value="12">12:00 PM</option><option value="13">1:00 PM</option>
+          <option value="14">2:00 PM</option><option value="15">3:00 PM</option>
+          <option value="16">4:00 PM</option><option value="17">5:00 PM</option>
+          <option value="18">6:00 PM</option>
+        </select>
+      </div>
+      <div class="time-range">
+        <label>To</label>
+        <select id="availEnd">
+          <option value="12">12:00 PM</option><option value="13">1:00 PM</option>
+          <option value="14">2:00 PM</option><option value="15">3:00 PM</option>
+          <option value="16">4:00 PM</option><option value="17">5:00 PM</option>
+          <option value="18">6:00 PM</option><option value="19">7:00 PM</option>
+          <option value="20">8:00 PM</option><option value="21">9:00 PM</option>
+          <option value="22">10:00 PM</option>
+        </select>
+      </div>
+      <p class="avail-note">Green days show events that match your schedule. Your availability is saved locally until Google Calendar sync is added.</p>
+      <br>
+      <button class="connect-cal-btn" onclick="showToast('Google Calendar sync coming soon! 📅')">
+        🔗 Connect Google Calendar
+      </button>
+    </div>
+
+
+    <!-- Filters -->
+    <div class="sidebar-section">
+      <h3>Filter Events</h3>
+      <div class="filter-tags">
+        <div class="filter-tag active" data-cat="all" onclick="toggleFilter(this)">All</div>
+        <div class="filter-tag cat-sports" data-cat="Sports" onclick="toggleFilter(this)">Sports</div>
+        <div class="filter-tag cat-music" data-cat="Music" onclick="toggleFilter(this)">Music</div>
+        <div class="filter-tag cat-food" data-cat="Food" onclick="toggleFilter(this)">Food</div>
+        <div class="filter-tag cat-arts" data-cat="Arts" onclick="toggleFilter(this)">Arts</div>
+        <div class="filter-tag cat-community" data-cat="Community" onclick="toggleFilter(this)">Community</div>
+        <div class="filter-tag cat-outdoor" data-cat="Outdoor" onclick="toggleFilter(this)">Outdoor</div>
+      </div>
+    </div>
+
+
+  </aside>
+
+
+  <!-- Main Calendar -->
+  <div class="main-content">
+    <div class="cal-header">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+        <h2 class="cal-month-title" id="calMonthTitle"></h2>
+        <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+        <button class="btn btn-outline" style="color:var(--text);border-color:var(--border);font-size:11px;" onclick="goToToday()">Today</button>
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn active" onclick="setView('month', this)">Month</button>
+        <button class="view-btn" onclick="setView('list', this)">List</button>
+      </div>
+    </div>
+
+
+    <!-- Month View -->
+    <div id="monthView">
+      <div class="cal-grid">
+        <div class="cal-day-headers">
+          <div class="cal-day-header">Sun</div>
+          <div class="cal-day-header">Mon</div>
+          <div class="cal-day-header">Tue</div>
+          <div class="cal-day-header">Wed</div>
+          <div class="cal-day-header">Thu</div>
+          <div class="cal-day-header">Fri</div>
+          <div class="cal-day-header">Sat</div>
+        </div>
+        <div class="cal-days" id="calDays"></div>
+      </div>
+    </div>
+
+
+    <!-- List View -->
+    <div id="listView" class="list-view"></div>
+  </div>
+</div>
+
+
+<!-- Event Detail Modal -->
+<div class="modal-overlay" id="eventModal" onclick="closeModal('eventModal', event)">
+  <div class="modal" style="position:relative;">
+    <button class="modal-close-btn" onclick="closeModal('eventModal')">✕</button>
+    <div class="modal-color-bar" id="modalColorBar"></div>
+    <div class="modal-body">
+      <div class="modal-cat" id="modalCat"></div>
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-meta" id="modalMeta"></div>
+      <div class="modal-desc" id="modalDesc"></div>
+      <div class="modal-actions">
+        <button class="btn btn-accent" onclick="showToast('RSVP feature coming soon!')">RSVP</button>
+        <button class="btn btn-outline" style="color:var(--text);border-color:var(--border);" onclick="showToast('Added to your calendar!')">+ Save</button>
+        <button class="btn btn-outline" style="color:var(--text);border-color:var(--border);" onclick="showToast('Share link copied!')">Share</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Location Modal -->
+<div class="modal-overlay" id="locationModal" onclick="closeModal('locationModal', event)">
+  <div class="modal location-modal" style="position:relative;">
+    <button class="modal-close-btn" onclick="closeModal('locationModal')">✕</button>
+    <div class="modal-color-bar" style="background: #2f6bc8;"></div>
+    <div class="modal-body">
+      <div class="modal-cat" style="color:#2f6bc8;">Location</div>
+      <div class="modal-title">Find Events Near You</div>
+      <div class="location-options">
+        <div class="location-option" onclick="useGPS()">
+          <div class="location-option-icon">📍</div>
+          <div class="location-option-text">
+            <h4>Use My Location</h4>
+            <p>Automatically detect your current location</p>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Or enter a city</div>
+      <div class="location-input-row">
+        <input class="location-input" id="cityInput" type="text" placeholder="e.g. Boise, ID" />
+        <button class="btn btn-accent" onclick="setManualLocation()">Go</button>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6;">
+        Location is used to show nearby events. It is stored locally in your browser only.
+      </p>
+    </div>
+  </div>
+</div>
+
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+
+<script>
+  // ─── State ───────────────────────────────────────────────────────
+  let currentDate = new Date();
+  let viewYear = currentDate.getFullYear();
+  let viewMonth = currentDate.getMonth();
+  let miniYear = viewYear;
+  let miniMonth = viewMonth;
+  let selectedCats = new Set(['all']);
+  let availableDays = new Set(); // 0=Sun...6=Sat
+  let userLocation = localStorage.getItem('userLocation') || null;
+  let currentView = 'month';
+
+
+  // Load availability from localStorage
+  const savedAvail = localStorage.getItem('availDays');
+  if (savedAvail) JSON.parse(savedAvail).forEach(d => availableDays.add(d));
+  const savedStart = localStorage.getItem('availStart');
+  const savedEnd = localStorage.getItem('availEnd');
+
+
+  // ─── Category Colors ─────────────────────────────────────────────
+  const CAT_COLORS = {
+    Sports: '#2f6bc8',
+    Music: '#c84b2f',
+    Food: '#e07b20',
+    Arts: '#8b2fc8',
+    Community: '#2fa87a',
+    Outdoor: '#5a9e2f',
+  };
+
+
+  // ─── Sample Events (replace/extend with your real data source) ───
+  const EVENTS = [
+    // This month
+    { id:1, title:'Farmers Market', cat:'Food', date: thisMonthDate(6), time:'8:00 AM', endTime:'1:00 PM', hour:8, location:'Downtown Plaza', desc:'Weekly farmers market with local produce, artisan goods, and food trucks. Over 80 vendors every Saturday.' },
+    { id:2, title:'Jazz in the Park', cat:'Music', date: thisMonthDate(8), time:'6:00 PM', endTime:'9:00 PM', hour:18, location:'Riverside Park Amphitheater', desc:'Free outdoor jazz concert featuring the local symphony jazz ensemble. Bring a blanket and enjoy the evening.' },
+    { id:3, title:'Community 5K Run', cat:'Sports', date: thisMonthDate(9), time:'7:30 AM', endTime:'10:00 AM', hour:7, location:'City Park', desc:'Annual community 5K open to all fitness levels. Registration includes a t-shirt and post-race breakfast.' },
+    { id:4, title:'Art Gallery Opening', cat:'Arts', date: thisMonthDate(12), time:'5:00 PM', endTime:'8:00 PM', hour:17, location:'The Loft Gallery', desc:'Opening reception for "Urban Textures" — a new exhibition featuring 12 local artists exploring city life through mixed media.' },
+    { id:5, title:'Food Truck Rally', cat:'Food', date: thisMonthDate(14), time:'11:00 AM', endTime:'8:00 PM', hour:11, location:'Central Fairgrounds', desc:'20+ food trucks, live music, and a best-of-show competition. Family friendly. Free entry.' },
+    { id:6, title:'Volleyball Tournament', cat:'Sports', date: thisMonthDate(15), time:'9:00 AM', endTime:'5:00 PM', hour:9, location:'Beachside Courts', desc:'Open doubles beach volleyball tournament. Register as a pair. Prizes for top 3 teams.' },
+    { id:7, title:'Neighborhood Cleanup', cat:'Community', date: thisMonthDate(16), time:'9:00 AM', endTime:'12:00 PM', hour:9, location:'Meet at Oak Street Park', desc:'Monthly volunteer cleanup event. Supplies provided. All ages welcome. Lunch provided for volunteers.' },
+    { id:8, title:'Hiking Club Meetup', cat:'Outdoor', date: thisMonthDate(18), time:'7:00 AM', endTime:'12:00 PM', hour:7, location:'Trailhead Parking Lot B', desc:'Guided 8-mile hike through the ridge trail. Moderate difficulty. Bring water, snacks, and sturdy footwear.' },
+    { id:9, title:'Open Mic Night', cat:'Music', date: thisMonthDate(20), time:'7:00 PM', endTime:'10:00 PM', hour:19, location:'The Copper Mug', desc:'Sign up to perform any genre — music, comedy, spoken word. 5-minute slots. Free to attend.' },
+    { id:10, title:'Pottery Workshop', cat:'Arts', date: thisMonthDate(21), time:'2:00 PM', endTime:'5:00 PM', hour:14, location:'Clay & Fire Studio', desc:'Beginner-friendly wheel throwing class. All materials included. Limited to 12 participants.' },
+    { id:11, title:'Farmers Market', cat:'Food', date: thisMonthDate(13), time:'8:00 AM', endTime:'1:00 PM', hour:8, location:'Downtown Plaza', desc:'Weekly farmers market with local produce, artisan goods, and food trucks.' },
+    { id:12, title:'Community Board Meeting', cat:'Community', date: thisMonthDate(22), time:'6:00 PM', endTime:'8:00 PM', hour:18, location:'City Hall Room 4', desc:'Monthly public community board meeting. Agenda includes park renovation plans and local business updates. All welcome.' },
+    { id:13, title:'Outdoor Movie Night', cat:'Outdoor', date: thisMonthDate(23), time:'8:00 PM', endTime:'11:00 PM', hour:20, location:'Sunset Lawn', desc:'Free outdoor screening of a fan-favorite film. BYO blankets and snacks. Food vendors on site.' },
+    { id:14, title:'Basketball Pickup', cat:'Sports', date: thisMonthDate(25), time:'6:00 PM', endTime:'9:00 PM', hour:18, location:'Recreation Center Court 2', desc:'Weekly casual pickup basketball. All skill levels. First come first serve teams.' },
+    { id:15, title:'Sunday Brunch Pop-Up', cat:'Food', date: thisMonthDate(26), time:'10:00 AM', endTime:'2:00 PM', hour:10, location:'The Garden Terrace', desc:'Monthly rotating chef pop-up brunch. This week features Southern-inspired comfort food. Reservations recommended.' },
+    { id:16, title:'Yoga in the Park', cat:'Outdoor', date: thisMonthDate(4), time:'8:00 AM', endTime:'9:00 AM', hour:8, location:'Greenway Park East Lawn', desc:'Free community yoga every Wednesday morning. Bring your own mat. All levels welcome.' },
+    { id:17, title:'Tech Meetup', cat:'Community', date: thisMonthDate(28), time:'7:00 PM', endTime:'9:00 PM', hour:19, location:'Co-Work Boise', desc:'Monthly gathering for local tech enthusiasts, developers, and founders. Lightning talks + networking.' },
+    { id:18, title:'Farmers Market', cat:'Food', date: thisMonthDate(20), time:'8:00 AM', endTime:'1:00 PM', hour:8, location:'Downtown Plaza', desc:'Weekly farmers market.' },
+  ];
+
+
+  function thisMonthDate(day) {
+    return new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+  }
+
+
+  // ─── Location ─────────────────────────────────────────────────────
+  function detectLocation() {
+    if (userLocation) {
+      document.getElementById('locationLabel').textContent = userLocation;
+      return;
+    }
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const { latitude, longitude } = pos.coords;
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`)
+            .then(r => r.json())
+            .then(data => {
+              const city = data.address.city || data.address.town || data.address.village || 'Your Area';
+              const state = data.address.state_code || '';
+              const loc = state ? `${city}, ${state}` : city;
+              setLocation(loc);
+            })
+            .catch(() => setLocation('Local Area'));
+        },
+        () => {
+          document.getElementById('locationLabel').textContent = 'Set your location';
+        }
+      );
+    } else {
+      document.getElementById('locationLabel').textContent = 'Set your location';
+    }
+  }
+
+
+  function setLocation(loc) {
+    userLocation = loc;
+    localStorage.setItem('userLocation', loc);
+    document.getElementById('locationLabel').textContent = loc;
+    closeModal('locationModal');
+    showToast(`📍 Showing events near ${loc}`);
+    render();
+  }
+
+
+  function useGPS() {
+    document.getElementById('locationLabel').textContent = 'Detecting...';
+    closeModal('locationModal');
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`)
+            .then(r => r.json())
+            .then(data => {
+              const city = data.address.city || data.address.town || data.address.village || 'Your Area';
+              const state = data.address.state_code || '';
+              setLocation(state ? `${city}, ${state}` : city);
+            })
+            .catch(() => setLocation('Local Area'));
+        },
+        () => { showToast('Location access denied. Enter city manually.'); openLocationModal(); }
+      );
+    }
+  }
+
+
+  function setManualLocation() {
+    const val = document.getElementById('cityInput').value.trim();
+    if (val) setLocation(val);
+  }
+
+
+  function openLocationModal() {
+    document.getElementById('locationModal').classList.add('open');
+  }
+
+
+  // ─── Availability ─────────────────────────────────────────────────
+  document.getElementById('availGrid').querySelectorAll('.avail-day-btn').forEach(btn => {
+    const day = parseInt(btn.dataset.day);
+    if (availableDays.has(day)) btn.classList.add('active');
+    btn.addEventListener('click', () => {
+      if (availableDays.has(day)) { availableDays.delete(day); btn.classList.remove('active'); }
+      else { availableDays.add(day); btn.classList.add('active'); }
+      localStorage.setItem('availDays', JSON.stringify([...availableDays]));
+      render();
+    });
+  });
+
+
+  if (savedStart) document.getElementById('availStart').value = savedStart;
+  if (savedEnd) document.getElementById('availEnd').value = savedEnd;
+
+
+  document.getElementById('availStart').addEventListener('change', e => {
+    localStorage.setItem('availStart', e.target.value); render();
+  });
+  document.getElementById('availEnd').addEventListener('change', e => {
+    localStorage.setItem('availEnd', e.target.value); render();
+  });
+
+
+  function isAvailableDay(date) {
+    return availableDays.has(date.getDay());
+  }
+
+
+  function isAvailableEvent(event) {
+    if (!isAvailableDay(event.date)) return false;
+    const start = parseInt(document.getElementById('availStart').value);
+    const end = parseInt(document.getElementById('availEnd').value);
+    return event.hour >= start && event.hour <= end;
+  }
+
+
+  // ─── Filters ─────────────────────────────────────────────────────
+  function toggleFilter(el) {
+    const cat = el.dataset.cat;
+    if (cat === 'all') {
+      selectedCats.clear();
+      selectedCats.add('all');
+      document.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+    } else {
+      selectedCats.delete('all');
+      document.querySelector('[data-cat="all"]').classList.remove('active');
+      if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        selectedCats.delete(cat);
+        if (selectedCats.size === 0) {
+          selectedCats.add('all');
+          document.querySelector('[data-cat="all"]').classList.add('active');
+        }
+      } else {
+        el.classList.add('active');
+        selectedCats.add(cat);
+      }
+    }
+    render();
+  }
+
+
+  function filteredEvents() {
+    if (selectedCats.has('all')) return EVENTS;
+    return EVENTS.filter(e => selectedCats.has(e.cat));
+  }
+
+
+  // ─── Calendar Rendering ───────────────────────────────────────────
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+
+  function render() {
+    renderMainCal();
+    renderMiniCal();
+    renderListView();
+  }
+
+
+  function renderMainCal() {
+    document.getElementById('calMonthTitle').textContent = `${MONTHS[viewMonth]} ${viewYear}`;
+    const container = document.getElementById('calDays');
+    container.innerHTML = '';
+
+
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const daysInPrev = new Date(viewYear, viewMonth, 0).getDate();
+    const events = filteredEvents();
+    const today = new Date();
+
+
+    let cells = [];
+    for (let i = firstDay - 1; i >= 0; i--) {
+      cells.push({ day: daysInPrev - i, month: viewMonth - 1, year: viewYear, other: true });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push({ day: d, month: viewMonth, year: viewYear, other: false });
+    }
+    while (cells.length % 7 !== 0) {
+      cells.push({ day: cells.length - (firstDay + daysInMonth) + 1, month: viewMonth + 1, year: viewYear, other: true });
+    }
+
+
+    cells.forEach(cell => {
+      const cellDate = new Date(cell.year, cell.month, cell.day);
+      const isToday = !cell.other &&
+        cell.day === today.getDate() &&
+        cell.month === today.getMonth() &&
+        cell.year === today.getFullYear();
+      const isAvail = !cell.other && isAvailableDay(cellDate);
+
+
+      const dayEvents = events.filter(e =>
+        e.date.getDate() === cell.day &&
+        e.date.getMonth() === cell.month &&
+        e.date.getFullYear() === cell.year
+      );
+
+
+      const div = document.createElement('div');
+      div.className = `cal-day${cell.other ? ' other-month' : ''}${isToday ? ' today' : ''}${isAvail ? ' available-day' : ''}`;
+
+
+      let eventsHTML = '';
+      const MAX_SHOW = 3;
+      dayEvents.slice(0, MAX_SHOW).forEach(ev => {
+        const color = CAT_COLORS[ev.cat] || '#888';
+        eventsHTML += `<div class="event-chip" style="background:${color}" onclick="event.stopPropagation();openEvent(${ev.id})">${ev.time} ${ev.title}</div>`;
+      });
+      if (dayEvents.length > MAX_SHOW) {
+        eventsHTML += `<div class="more-events">+${dayEvents.length - MAX_SHOW} more</div>`;
+      }
+
+
+      div.innerHTML = `
+        ${isAvail ? '<div class="avail-badge"></div>' : ''}
+        <div class="day-num">${cell.day}</div>
+        <div class="day-events">${eventsHTML}</div>
+      `;
+
+
+      container.appendChild(div);
+    });
+  }
+
+
+  function renderMiniCal() {
+    document.getElementById('miniMonthLabel').textContent = `${MONTHS[miniMonth].slice(0,3)} ${miniYear}`;
+    const grid = document.getElementById('miniCalGrid');
+    // Remove old day cells (keep headers)
+    const headers = grid.querySelectorAll('.mini-day-label');
+    grid.innerHTML = '';
+    headers.forEach(h => grid.appendChild(h));
+
+
+    const firstDay = new Date(miniYear, miniMonth, 1).getDay();
+    const daysInMonth = new Date(miniYear, miniMonth + 1, 0).getDate();
+    const daysInPrev = new Date(miniYear, miniMonth, 0).getDate();
+    const today = new Date();
+    const events = filteredEvents();
+
+
+    let cells = [];
+    for (let i = firstDay - 1; i >= 0; i--) cells.push({ day: daysInPrev - i, other: true });
+    for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, other: false, month: miniMonth, year: miniYear });
+    while (cells.length % 7 !== 0) cells.push({ day: cells.length - (firstDay + daysInMonth) + 1, other: true });
+
+
+    cells.forEach(cell => {
+      const div = document.createElement('div');
+      const isToday = !cell.other && cell.day === today.getDate() && miniMonth === today.getMonth() && miniYear === today.getFullYear();
+      const cellDate = cell.other ? null : new Date(miniYear, miniMonth, cell.day);
+      const isAvail = cellDate && isAvailableDay(cellDate);
+      const hasEvents = !cell.other && events.some(e =>
+        e.date.getDate() === cell.day && e.date.getMonth() === miniMonth && e.date.getFullYear() === miniYear
+      );
+      div.className = `mini-day${cell.other ? ' other-month' : ''}${isToday ? ' today' : ''}${isAvail ? ' available' : ''}${hasEvents ? ' has-event' : ''}`;
+      div.textContent = cell.day;
+      if (!cell.other) {
+        div.onclick = () => {
+          viewYear = miniYear; viewMonth = miniMonth;
+          render();
+        };
+      }
+      grid.appendChild(div);
+    });
+  }
+
+
+  function renderListView() {
+    const container = document.getElementById('listView');
+    container.innerHTML = '';
+    const events = filteredEvents()
+      .filter(e => e.date.getMonth() === viewMonth && e.date.getFullYear() === viewYear)
+      .sort((a,b) => a.date - b.date || a.hour - b.hour);
+
+
+    if (events.length === 0) {
+      container.innerHTML = `<div style="text-align:center;padding:60px;color:var(--muted);font-size:14px;">No events this month matching your filters.</div>`;
+      return;
+    }
+
+
+    // Group by day
+    const groups = {};
+    events.forEach(ev => {
+      const key = ev.date.toDateString();
+      if (!groups[key]) groups[key] = { date: ev.date, events: [] };
+      groups[key].events.push(ev);
+    });
+
+
+    Object.values(groups).forEach(group => {
+      const isAvail = isAvailableDay(group.date);
+      const today = new Date();
+      const isToday = group.date.toDateString() === today.toDateString();
+
+
+      const groupEl = document.createElement('div');
+      groupEl.className = 'list-day-group';
+
+
+      const label = `${DAYS_SHORT[group.date.getDay()]}, ${MONTHS[group.date.getMonth()]} ${group.date.getDate()}${isToday ? ' — Today' : ''}`;
+      groupEl.innerHTML = `<div class="list-day-label">${label}${isAvail ? '<span class="avail-pill">✓ You\'re free</span>' : ''}</div>`;
+
+
+      group.events.forEach(ev => {
+        const color = CAT_COLORS[ev.cat] || '#888';
+        const isAvailEv = isAvailableEvent(ev);
+        const evEl = document.createElement('div');
+        evEl.className = 'list-event';
+        evEl.style.color = color;
+        evEl.style.borderLeftColor = color;
+        evEl.innerHTML = `
+          <div class="list-event-time">${ev.time}</div>
+          <div class="list-event-body">
+            <h4>${ev.title}${isAvailEv ? ' ✓' : ''}</h4>
+            <p>📍 ${ev.location}</p>
+          </div>
+          <div class="list-event-cat" style="background:${color}">${ev.cat}</div>
+        `;
+        evEl.onclick = () => openEvent(ev.id);
+        groupEl.appendChild(evEl);
+      });
+
+
+      container.appendChild(groupEl);
+    });
+  }
+
+
+  // ─── Navigation ───────────────────────────────────────────────────
+  function changeMonth(dir) {
+    viewMonth += dir;
+    if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+    if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+    miniMonth = viewMonth; miniYear = viewYear;
+    render();
+  }
+
+
+  function miniNav(dir) {
+    miniMonth += dir;
+    if (miniMonth > 11) { miniMonth = 0; miniYear++; }
+    if (miniMonth < 0) { miniMonth = 11; miniYear--; }
+    renderMiniCal();
+  }
+
+
+  function goToToday() {
+    const now = new Date();
+    viewMonth = now.getMonth(); viewYear = now.getFullYear();
+    miniMonth = viewMonth; miniYear = viewYear;
+    render();
+  }
+
+
+  function setView(view, btn) {
+    currentView = view;
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('monthView').style.display = view === 'month' ? 'block' : 'none';
+    document.getElementById('listView').style.display = view === 'list' ? 'flex' : 'none';
+  }
+
+
+  // ─── Event Modal ──────────────────────────────────────────────────
+  function openEvent(id) {
+    const ev = EVENTS.find(e => e.id === id);
+    if (!ev) return;
+    const color = CAT_COLORS[ev.cat] || '#888';
+    document.getElementById('modalColorBar').style.background = color;
+    document.getElementById('modalCat').style.color = color;
+    document.getElementById('modalCat').textContent = ev.cat;
+    document.getElementById('modalTitle').textContent = ev.title;
+    document.getElementById('modalMeta').innerHTML = `
+      <div class="modal-meta-row"><span class="modal-meta-icon">📅</span><span>${DAYS_SHORT[ev.date.getDay()]}, ${MONTHS[ev.date.getMonth()]} ${ev.date.getDate()}, ${ev.date.getFullYear()}</span></div>
+      <div class="modal-meta-row"><span class="modal-meta-icon">⏰</span><span>${ev.time} – ${ev.endTime}</span></div>
+      <div class="modal-meta-row"><span class="modal-meta-icon">📍</span><span>${ev.location}</span></div>
+      ${isAvailableEvent(ev) ? `<div class="modal-meta-row"><span class="modal-meta-icon">✅</span><span style="color:var(--accent3);font-weight:600;">You're available for this event!</span></div>` : ''}
+    `;
+    document.getElementById('modalDesc').textContent = ev.desc;
+    document.getElementById('eventModal').classList.add('open');
+  }
+
+
+  function closeModal(id, e) {
+    if (e && e.target !== document.getElementById(id)) return;
+    document.getElementById(id).classList.remove('open');
+  }
+
+
+  // ─── Toast ────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+
+  // ─── Init ─────────────────────────────────────────────────────────
+  render();
+  detectLocation();
+</script>
+</body>
+</html>

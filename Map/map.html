@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Community Map</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <!-- Heat layer -->
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #0d0f14;
+      --surface: #141720ee;
+      --card: #1c2030;
+      --border: #2a3050;
+      --accent: #5dfdcb;
+      --accent2: #ff6b6b;
+      --accent3: #ffd93d;
+      --accent4: #a78bfa;
+      --accent5: #60a5fa;
+      --text: #e8eaf6;
+      --muted: #5a6080;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body { height: 100%; overflow: hidden; font-family: 'Syne', sans-serif; background: var(--bg); }
+
+    #map { height: 100%; width: 100%; }
+
+    /* Dark map filter */
+    .leaflet-tile { filter: brightness(0.85) saturate(0.7) hue-rotate(200deg) invert(0.05); }
+
+    /* ── SIDEBAR ── */
+    #sidebar {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 320px;
+      z-index: 1000;
+      background: var(--surface);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease;
+    }
+
+    #sidebar.collapsed { transform: translateX(-320px); }
+
+    .sidebar-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .sidebar-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+    .sidebar-title span { color: var(--accent); }
+
+    .sidebar-sub {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 3px;
+      margin-top: 4px;
+    }
+
+    /* Location bar */
+    .loc-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .loc-icon { font-size: 16px; }
+
+    .loc-info { flex: 1; }
+    .loc-label { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); letter-spacing: 2px; }
+    .loc-name { font-size: 12px; font-weight: 600; color: var(--accent); }
+
+    .loc-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      padding: 5px 10px;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .loc-btn:hover { background: var(--accent); color: var(--bg); }
+
+    /* Layers scroll area */
+    .layers-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+    }
+
+    .layers-scroll::-webkit-scrollbar { width: 4px; }
+    .layers-scroll::-webkit-scrollbar-track { background: transparent; }
+    .layers-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--accent3);
+      letter-spacing: 3px;
+      margin-bottom: 10px;
+      margin-top: 16px;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    /* Layer toggles */
+    .layer-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      margin-bottom: 4px;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .layer-toggle:hover { background: rgba(255,255,255,0.04); }
+    .layer-toggle.active { background: rgba(255,255,255,0.06); border-color: var(--border); }
+
+    .layer-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .layer-name { font-size: 13px; font-weight: 600; flex: 1; }
+    .layer-count {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+    }
+
+    .toggle-pill {
+      width: 32px; height: 16px;
+      background: var(--border);
+      border-radius: 16px;
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle-pill::after {
+      content: '';
+      position: absolute;
+      width: 12px; height: 12px;
+      top: 2px; left: 2px;
+      background: var(--muted);
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+    .layer-toggle.active .toggle-pill { background: rgba(93,253,203,0.3); }
+    .layer-toggle.active .toggle-pill::after { left: 18px; background: var(--accent); }
+
+    /* Paid feature badge */
+    .paid-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 7px;
+      padding: 2px 6px;
+      border-radius: 20px;
+      background: rgba(255,215,0,0.15);
+      color: var(--accent3);
+      border: 1px solid rgba(255,215,0,0.3);
+      letter-spacing: 1px;
+    }
+
+    /* Meetup section */
+    .add-meetup-btn {
+      width: 100%;
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 11px;
+      background: transparent;
+      border: 1px solid var(--accent4);
+      color: var(--accent4);
+      border-radius: 8px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      transition: all 0.2s;
+      margin-top: 8px;
+    }
+    .add-meetup-btn:hover { background: var(--accent4); color: var(--bg); }
+
+    /* Location games */
+    .game-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 3px;
+      transition: all 0.15s;
+    }
+    .game-chip:hover { border-color: var(--accent2); color: var(--accent2); }
+    .game-chip.selected { border-color: var(--accent2); background: rgba(255,107,107,0.15); color: var(--accent2); }
+
+    /* Refresh btn */
+    .refresh-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      padding: 8px 14px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 6px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.2s;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Status pill */
+    .status-pill {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(93,253,203,0.1);
+      color: var(--accent);
+      border: 1px solid rgba(93,253,203,0.2);
+      letter-spacing: 1px;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    /* ── TOGGLE SIDEBAR BTN ── */
+    #sidebarToggle {
+      position: absolute;
+      top: 50%;
+      left: 320px;
+      transform: translateY(-50%);
+      z-index: 1001;
+      width: 24px;
+      height: 48px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: none;
+      border-radius: 0 8px 8px 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 12px;
+      transition: left 0.3s ease, color 0.2s;
+      backdrop-filter: blur(20px);
+    }
+    #sidebarToggle:hover { color: var(--accent); }
+    #sidebar.collapsed + #sidebarToggle { left: 0; }
+
+    /* ── MAP CONTROLS ── */
+    .map-controls {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .map-ctrl-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      padding: 8px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      backdrop-filter: blur(20px);
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .map-ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .map-ctrl-btn.active { border-color: var(--accent2); color: var(--accent2); background: rgba(255,107,107,0.1); }
+
+    /* ── POPUP STYLES ── */
+    .leaflet-popup-content-wrapper {
+      background: var(--card) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 12px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+      color: var(--text) !important;
+    }
+    .leaflet-popup-tip { background: var(--card) !important; }
+    .leaflet-popup-content { margin: 14px 16px !important; font-family: 'Syne', sans-serif; }
+
+    .popup-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .popup-type {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .popup-detail { font-size: 12px; color: #a0a8c0; line-height: 1.6; }
+    .popup-paid {
+      display: inline-block;
+      margin-top: 8px;
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: rgba(255,215,0,0.15);
+      color: var(--accent3);
+      border: 1px solid rgba(255,215,0,0.3);
+      cursor: pointer;
+      letter-spacing: 1px;
+    }
+    .popup-paid:hover { background: rgba(255,215,0,0.3); }
+    .popup-rsvp {
+      display: inline-block;
+      margin-top: 8px;
+      margin-left: 6px;
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: rgba(167,139,250,0.15);
+      color: var(--accent4);
+      border: 1px solid rgba(167,139,250,0.3);
+      cursor: pointer;
+      letter-spacing: 1px;
+    }
+
+    /* ── MEETUP MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 460px;
+      padding: 28px;
+      transform: scale(0.95);
+      transition: transform 0.3s;
+    }
+    .modal-overlay.open .modal { transform: scale(1); }
+
+    .modal h2 { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+    .modal-sub { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 2px; margin-bottom: 20px; }
+
+    .form-row { margin-bottom: 14px; }
+    .form-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--accent); letter-spacing: 2px; margin-bottom: 6px; display: block; }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent4); }
+    .form-textarea { resize: vertical; min-height: 70px; }
+    .form-select option { background: var(--card); }
+
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-btn {
+      flex: 1;
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.2s;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+    }
+    .modal-btn.primary { border-color: var(--accent4); color: var(--accent4); }
+    .modal-btn.primary:hover { background: var(--accent4); color: var(--bg); }
+    .modal-btn:hover { color: var(--text); border-color: var(--text); }
+
+    /* Game zone pulse */
+    .game-zone-label {
+      background: rgba(255,107,107,0.2);
+      border: 2px solid var(--accent2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--accent2);
+      font-family: 'DM Mono', monospace;
+      animation: gameZonePulse 2s ease-in-out infinite;
+    }
+    @keyframes gameZonePulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,107,0.4); }
+      50% { box-shadow: 0 0 0 12px rgba(255,107,107,0); }
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--card);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      letter-spacing: 2px;
+      z-index: 3000;
+      transition: transform 0.3s ease;
+      box-shadow: 0 0 20px rgba(93,253,203,0.2);
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Distance badge on popup */
+    .dist-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--accent5);
+      letter-spacing: 1px;
+    }
+
+    /* Leaflet overrides */
+    .leaflet-control-zoom { display: none; }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- Sidebar -->
+<div id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-title">Community <span>Map</span></div>
+    <div class="sidebar-sub">// TREASURE VALLEY · BOISE, ID</div>
+  </div>
+
+  <div class="loc-bar">
+    <span class="loc-icon">📍</span>
+    <div class="loc-info">
+      <div class="loc-label">YOUR LOCATION</div>
+      <div class="loc-name" id="locName">Not detected</div>
+    </div>
+    <button class="loc-btn" onclick="detectLocation()">DETECT</button>
+  </div>
+
+  <div class="layers-scroll">
+
+    <div class="section-label">▸ LIVE OSM LAYERS</div>
+
+    <div class="layer-toggle active" id="tog-hotspots" onclick="toggleLayer('hotspots', this)">
+      <span class="layer-dot" style="background:#ff6b6b"></span>
+      <span class="layer-name">Activity Hotspots</span>
+      <span class="layer-count" id="cnt-hotspots">heat</span>
+      <div class="toggle-pill"></div>
+    </div>
+
+    <div class="layer-toggle active" id="tog-restaurants" onclick="toggleLayer('restaurants', this)">
+      <span class="layer-dot" style="background:#ffd93d"></span>
+      <span class="layer-name">Restaurants</span>
+      <span class="paid-badge">FEATURED</span>
+      <span class="layer-count" id="cnt-restaurants">–</span>
+      <div class="toggle-pill"></div>
+    </div>
+
+    <div class="layer-toggle active" id="tog-breweries" onclick="toggleLayer('breweries', this)">
+      <span class="layer-dot" style="background:#a78bfa"></span>
+      <span class="layer-name">Breweries & Pubs</span>
+      <span class="paid-badge">FEATURED</span>
+      <span class="layer-count" id="cnt-breweries">–</span>
+      <div class="toggle-pill"></div>
+    </div>
+
+    <div class="layer-toggle active" id="tog-gamestores" onclick="toggleLayer('gamestores', this)">
+      <span class="layer-dot" style="background:#5dfdcb"></span>
+      <span class="layer-name">Game Stores</span>
+      <span class="paid-badge">FEATURED</span>
+      <span class="layer-count" id="cnt-gamestores">–</span>
+      <div class="toggle-pill"></div>
+    </div>
+
+    <div class="section-label">▸ COMMUNITY LAYERS</div>
+
+    <div class="layer-toggle active" id="tog-thirdspaces" onclick="toggleLayer('thirdspaces', this)">
+      <span class="layer-dot" style="background:#86efac"></span>
+      <span class="layer-name">Third Spaces</span>
+      <span class="layer-count" id="cnt-thirdspaces">–</span>
+      <div class="toggle-pill"></div>
+    </div>
+
+    <div class="layer-toggle active" id="tog-events" onclick="toggleLayer('events', this)">
+      <span class="layer-dot" style="background:#60a5fa"></span>
+      <span class="layer-name">Local Events</span>
+      <span class="layer-count" id="cnt-events">–</span>
+      <div class="toggle-pill"></div>
+    </div>
+
+    <div class="layer-toggle active" id="tog-meetups" onclick="toggleLayer('meetups', this)">
+      <span class="layer-dot" style="background:#f9a8d4"></span>
+      <span class="layer-name">Meetups</span>
+      <span class="layer-count" id="cnt-meetups">–</span>
+      <div class="toggle-pill"></div>
+    </div>
+
+    <button class="add-meetup-btn" onclick="openMeetupModal()">+ POST A MEETUP</button>
+
+    <div class="section-label">▸ LOCATION GAMES <span style="font-size:8px;color:var(--accent2)">(BETA)</span></div>
+
+    <div style="margin-bottom: 8px;">
+      <div class="game-chip" id="game-assassin" onclick="selectGame('assassin', this)">🎯 Senior Assassin</div>
+      <div class="game-chip" id="game-tag" onclick="selectGame('tag', this)">🏃 Tag Zone</div>
+      <div class="game-chip" id="game-ctf" onclick="selectGame('ctf', this)">🚩 Capture The Flag</div>
+    </div>
+    <div style="font-family:'DM Mono',monospace; font-size:9px; color:var(--muted); line-height:1.8; margin-bottom:8px;">
+      Select a game to see active zones near you. Tap any zone to join or spectate.
+    </div>
+
+    <div class="section-label">▸ LIVE DATA</div>
+    <button class="refresh-btn" onclick="refreshOSM()">⟳ REFRESH LIVE OSM DATA</button>
+    <div class="status-pill" id="statusPill">Ready to load</div>
+
+  </div>
+</div>
+
+<!-- Sidebar toggle -->
+<button id="sidebarToggle" onclick="toggleSidebar()">‹</button>
+
+<!-- Map controls -->
+<div class="map-controls">
+  <button class="map-ctrl-btn" onclick="zoomToUser()">⊕ MY LOCATION</button>
+  <button class="map-ctrl-btn" id="hotspotViewBtn" onclick="toggleHotspotView()">🔥 HOTSPOT VIEW</button>
+</div>
+
+<!-- Meetup Modal -->
+<div class="modal-overlay" id="meetupModal" onclick="handleModalOverlay(event)">
+  <div class="modal">
+    <h2>Post a Meetup</h2>
+    <div class="modal-sub">// LET THE COMMUNITY KNOW YOU'RE DOWN TO HANG</div>
+
+    <div class="form-row">
+      <label class="form-label">MEETUP TITLE</label>
+      <input class="form-input" id="meetupTitle" placeholder="e.g. Casual chess at the park" />
+    </div>
+    <div class="form-row">
+      <label class="form-label">LOCATION / SPOT</label>
+      <input class="form-input" id="meetupLocation" placeholder="e.g. Julia Davis Park, near the fountain" />
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-row">
+        <label class="form-label">DATE</label>
+        <input class="form-input" id="meetupDate" type="date" />
+      </div>
+      <div class="form-row">
+        <label class="form-label">TIME</label>
+        <input class="form-input" id="meetupTime" type="time" />
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">VIBE / CATEGORY</label>
+      <select class="form-select" id="meetupCat">
+        <option value="games">🎮 Games</option>
+        <option value="sports">⚽ Sports</option>
+        <option value="social">💬 Social Hangout</option>
+        <option value="food">🍕 Food Run</option>
+        <option value="outdoor">🌳 Outdoor Activity</option>
+        <option value="music">🎵 Music / Jam</option>
+        <option value="study">📚 Study / Work</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">DETAILS (OPTIONAL)</label>
+      <textarea class="form-textarea" id="meetupDesc" placeholder="Any extra info, group size, bring anything?"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeMeetupModal()">CANCEL</button>
+      <button class="modal-btn primary" onclick="submitMeetup()">POST MEETUP</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────
+const TV_CENTER = [43.6150, -116.2023];
+const TV_ZOOM = 12;
+const TV_BBOX = [43.45, -116.75, 43.78, -116.05];
+const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+
+// ─── STATE ────────────────────────────────────────────────────────
+let userLocation = null;
+let sidebarOpen = true;
+let hotspotViewOn = true;
+let activeGame = null;
+let meetups = [];
+
+// ─── MAP INIT ─────────────────────────────────────────────────────
+const map = L.map('map', { zoomControl: false }).setView(TV_CENTER, TV_ZOOM);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// ─── LAYERS ───────────────────────────────────────────────────────
+const layers = {
+  hotspots: L.heatLayer([], { radius: 30, blur: 25, maxZoom: 14, gradient: { 0.2:'#a78bfa', 0.5:'#5dfdcb', 0.8:'#ffd93d', 1.0:'#ff6b6b' } }),
+  restaurants: L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 50 }),
+  breweries: L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 45 }),
+  gamestores: L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 40 }),
+  thirdspaces: L.layerGroup(),
+  events: L.layerGroup(),
+  meetups: L.layerGroup(),
+  gameZones: L.layerGroup(),
+  userMarker: L.layerGroup(),
+};
+
+// Start all visible
+Object.values(layers).forEach(l => l.addTo(map));
+
+// ─── LAYER STATE ──────────────────────────────────────────────────
+const layerState = {
+  hotspots: true, restaurants: true, breweries: true,
+  gamestores: true, thirdspaces: true, events: true, meetups: true
+};
+
+function toggleLayer(name, el) {
+  layerState[name] = !layerState[name];
+  el.classList.toggle('active', layerState[name]);
+  layerState[name] ? map.addLayer(layers[name]) : map.removeLayer(layers[name]);
+}
+
+// ─── CUSTOM ICONS ─────────────────────────────────────────────────
+function makeIcon(emoji, color, size = 36) {
+  return L.divIcon({
+    html: `<div style="
+      width:${size}px;height:${size}px;
+      background:${color}22;
+      border:2px solid ${color};
+      border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 2px 10px ${color}44;
+    "><span style="transform:rotate(45deg);font-size:${size*0.45}px">${emoji}</span></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size],
+    popupAnchor: [0, -size],
+    className: ''
+  });
+}
+
+function makePaidIcon(emoji, size = 36) {
+  return L.divIcon({
+    html: `<div style="
+      width:${size}px;height:${size}px;
+      background:#ffd93d22;
+      border:2px solid #ffd93d;
+      border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 2px 10px #ffd93d44;
+      position:relative;
+    ">
+      <span style="transform:rotate(45deg);font-size:${size*0.45}px">${emoji}</span>
+      <span style="position:absolute;top:-4px;right:-4px;transform:rotate(45deg);background:#ffd93d;color:#0d0f14;font-size:8px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800">★</span>
+    </div>`,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size],
+    popupAnchor: [0, -size],
+    className: ''
+  });
+}
+
+// ─── THIRD SPACES (curated) ───────────────────────────────────────
+const THIRD_SPACES = [
+  { name: "Julia Davis Park", lat: 43.6079, lng: -116.1988, type: "Park", desc: "Large urban park with walking paths, rose garden, and open green space.", emoji: "🌳" },
+  { name: "Ann Morrison Park", lat: 43.6004, lng: -116.2155, type: "Park", desc: "50-acre park along the Boise River. Great for frisbee, picnics & meetups.", emoji: "🌳" },
+  { name: "Camel's Back Park", lat: 43.6351, lng: -116.2013, type: "Park + Trails", desc: "Foothills park with access to hiking and mountain biking trails.", emoji: "⛰️" },
+  { name: "Boise Public Library", lat: 43.6139, lng: -116.2005, type: "Library", desc: "Free gathering space, study rooms, events & community programs.", emoji: "📚" },
+  { name: "Downtown Boise YMCA", lat: 43.6162, lng: -116.2027, type: "Community Center", desc: "Open community recreation and gathering space.", emoji: "🏋️" },
+  { name: "Freak Alley Gallery", lat: 43.6158, lng: -116.2010, type: "Art Space", desc: "Open-air street art gallery. Free to visit any time.", emoji: "🎨" },
+  { name: "Rhodes Park", lat: 43.6140, lng: -116.1961, type: "Park", desc: "Pocket park near downtown. Good for casual hangouts.", emoji: "🌿" },
+  { name: "Table Rock Trailhead", lat: 43.5949, lng: -116.1429, type: "Hiking", desc: "Popular hiking spot with panoramic views of the Treasure Valley.", emoji: "🥾" },
+  { name: "Boise Co-op Community Room", lat: 43.6208, lng: -116.2190, type: "Community Space", desc: "Free meeting space available for community groups.", emoji: "🏠" },
+  { name: "Esther Simplot Park", lat: 43.5970, lng: -116.2380, type: "Park + Skate", desc: "Modern park with skate plaza, splash pad, and river access.", emoji: "🛹" },
+];
+
+THIRD_SPACES.forEach(place => {
+  const marker = L.marker([place.lat, place.lng], { icon: makeIcon(place.emoji, '#86efac') });
+  marker.bindPopup(`
+    <div class="popup-title">${place.emoji} ${place.name}</div>
+    <div class="popup-type" style="color:#86efac">THIRD SPACE · ${place.type.toUpperCase()}</div>
+    <div class="popup-detail">${place.desc}</div>
+    <div class="popup-detail" style="margin-top:6px;color:#86efac">✓ Free to access · No purchase required</div>
+  `);
+  layers.thirdspaces.addLayer(marker);
+});
+document.getElementById('cnt-thirdspaces').textContent = THIRD_SPACES.length;
+
+// ─── LOCAL EVENTS (sample — tie to calendar.html later) ───────────
+const LOCAL_EVENTS = [
+  { name: "Jazz Night at Riverside", lat: 43.6071, lng: -116.1953, emoji: "🎷", time: "Sat 7PM", desc: "Live jazz at Riverside Bar & Grill." },
+  { name: "Sunday Farmers Market", lat: 43.6122, lng: -116.2030, emoji: "🥦", time: "Sun 8AM–1PM", desc: "40+ local vendors at Central Park Pavilion." },
+  { name: "Watercolor Workshop", lat: 43.6155, lng: -116.2100, emoji: "🎨", time: "Thu 2PM", desc: "Community Art Studio. All supplies provided." },
+  { name: "5K Fun Run", lat: 43.6010, lng: -116.2210, emoji: "🏅", time: "Sat 7:30AM", desc: "Casual 5K along the Riverfront Trail." },
+  { name: "Trivia Night", lat: 43.6170, lng: -116.1980, emoji: "🧠", time: "Sun 8PM", desc: "Teams up to 6. Cash prizes at The Local Pub." },
+  { name: "Night Market", lat: 43.6195, lng: -116.2080, emoji: "🍜", time: "Thu 5–10PM", desc: "12 cuisine vendors + live DJ in Warehouse District." },
+];
+
+LOCAL_EVENTS.forEach(ev => {
+  const marker = L.marker([ev.lat, ev.lng], { icon: makeIcon(ev.emoji, '#60a5fa') });
+  marker.bindPopup(`
+    <div class="popup-title">${ev.emoji} ${ev.name}</div>
+    <div class="popup-type" style="color:#60a5fa">LOCAL EVENT · ${ev.time.toUpperCase()}</div>
+    <div class="popup-detail">${ev.desc}</div>
+    <span class="popup-rsvp" onclick="showToast('RSVP FEATURE COMING SOON!')">+ RSVP / SAVE</span>
+  `);
+  layers.events.addLayer(marker);
+});
+document.getElementById('cnt-events').textContent = LOCAL_EVENTS.length;
+
+// ─── LOCATION GAMES ───────────────────────────────────────────────
+const GAME_ZONES = {
+  assassin: [
+    { name: "Zone A: Downtown Core",   lat: 43.6155, lng: -116.2023, players: 12, emoji: "🎯" },
+    { name: "Zone B: Hyde Park Area",  lat: 43.6311, lng: -116.2035, players: 8,  emoji: "🎯" },
+    { name: "Zone C: Boise State",     lat: 43.6025, lng: -116.1994, players: 15, emoji: "🎯" },
+  ],
+  tag: [
+    { name: "Tag Zone: Julia Davis",   lat: 43.6079, lng: -116.1988, players: 20, emoji: "🏃" },
+    { name: "Tag Zone: Ann Morrison",  lat: 43.6004, lng: -116.2155, players: 14, emoji: "🏃" },
+  ],
+  ctf: [
+    { name: "CTF: Camel's Back Park",  lat: 43.6351, lng: -116.2013, red: 5, blue: 7, emoji: "🚩" },
+    { name: "CTF: Military Reserve",   lat: 43.6202, lng: -116.1825, red: 8, blue: 6, emoji: "🚩" },
+  ]
+};
+
+function selectGame(game, el) {
+  document.querySelectorAll('.game-chip').forEach(c => c.classList.remove('selected'));
+  if (activeGame === game) {
+    activeGame = null;
+    layers.gameZones.clearLayers();
+    showToast('GAME LAYER CLEARED');
+    return;
+  }
+  activeGame = game;
+  el.classList.add('selected');
+  layers.gameZones.clearLayers();
+
+  const zones = GAME_ZONES[game] || [];
+  zones.forEach(z => {
+    // Pulsing circle
+    const circle = L.circle([z.lat, z.lng], {
+      radius: 300,
+      color: '#ff6b6b',
+      fillColor: '#ff6b6b',
+      fillOpacity: 0.08,
+      weight: 2,
+      dashArray: '6 4'
+    });
+    layers.gameZones.addLayer(circle);
+
+    const marker = L.marker([z.lat, z.lng], { icon: makeIcon(z.emoji, '#ff6b6b', 40) });
+    let popupContent = `<div class="popup-title">${z.emoji} ${z.name}</div>
+      <div class="popup-type" style="color:#ff6b6b">LOCATION GAME · ${game.toUpperCase()}</div>`;
+    if (game === 'ctf') {
+      popupContent += `<div class="popup-detail">🔴 Red team: ${z.red} players &nbsp;|&nbsp; 🔵 Blue team: ${z.blue} players</div>`;
+    } else {
+      popupContent += `<div class="popup-detail">👥 ${z.players} active players in this zone</div>`;
+    }
+    popupContent += `<span class="popup-rsvp" onclick="showToast('JOINING ZONE — FEATURE IN DEVELOPMENT!')">JOIN ZONE</span>`;
+    marker.bindPopup(popupContent);
+    layers.gameZones.addLayer(marker);
+  });
+
+  if (!map.hasLayer(layers.gameZones)) layers.gameZones.addTo(map);
+  showToast(`${game.toUpperCase()} ZONES LOADED`);
+}
+
+// ─── MEETUPS ──────────────────────────────────────────────────────
+const CAT_ICONS = {
+  games: '🎮', sports: '⚽', social: '💬',
+  food: '🍕', outdoor: '🌳', music: '🎵', study: '📚'
+};
+
+function renderMeetups() {
+  layers.meetups.clearLayers();
+  meetups.forEach((m, i) => {
+    // Assign rough coords near downtown if no geo (demo fallback)
+    const jitter = () => (Math.random() - 0.5) * 0.04;
+    const lat = m.lat || (43.6150 + jitter());
+    const lng = m.lng || (-116.2023 + jitter());
+    const emoji = CAT_ICONS[m.cat] || '📍';
+    const marker = L.marker([lat, lng], { icon: makeIcon(emoji, '#f9a8d4') });
+    marker.bindPopup(`
+      <div class="popup-title">${emoji} ${m.title}</div>
+      <div class="popup-type" style="color:#f9a8d4">MEETUP · ${m.cat.toUpperCase()}</div>
+      <div class="popup-detail">📍 ${m.location}</div>
+      <div class="popup-detail">🗓 ${m.date} at ${m.time}</div>
+      ${m.desc ? `<div class="popup-detail" style="margin-top:6px">${m.desc}</div>` : ''}
+      <span class="popup-rsvp" onclick="showToast('RSVP SENT!')">+ JOIN</span>
+    `);
+    layers.meetups.addLayer(marker);
+  });
+  document.getElementById('cnt-meetups').textContent = meetups.length || '–';
+}
+
+function openMeetupModal() {
+  document.getElementById('meetupModal').classList.add('open');
+  // Set today's date as default
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('meetupDate').value = today;
+}
+
+function closeMeetupModal() {
+  document.getElementById('meetupModal').classList.remove('open');
+}
+
+function handleModalOverlay(e) {
+  if (e.target === document.getElementById('meetupModal')) closeMeetupModal();
+}
+
+function submitMeetup() {
+  const title = document.getElementById('meetupTitle').value.trim();
+  const location = document.getElementById('meetupLocation').value.trim();
+  const date = document.getElementById('meetupDate').value;
+  const time = document.getElementById('meetupTime').value;
+  const cat = document.getElementById('meetupCat').value;
+  const desc = document.getElementById('meetupDesc').value.trim();
+
+  if (!title || !location) { showToast('PLEASE FILL IN TITLE & LOCATION'); return; }
+
+  meetups.push({ title, location, date, time, cat, desc,
+    lat: userLocation ? userLocation.lat + (Math.random()-0.5)*0.02 : null,
+    lng: userLocation ? userLocation.lng + (Math.random()-0.5)*0.02 : null,
+  });
+  renderMeetups();
+  closeMeetupModal();
+  showToast('MEETUP POSTED! 🎉');
+
+  // Clear form
+  ['meetupTitle','meetupLocation','meetupDesc'].forEach(id => document.getElementById(id).value = '');
+}
+
+// ─── LOCATION ─────────────────────────────────────────────────────
+function detectLocation() {
+  const btn = document.querySelector('.loc-btn');
+  const name = document.getElementById('locName');
+  btn.textContent = '...';
+  btn.disabled = true;
+  name.textContent = 'Detecting...';
+
+  if (!navigator.geolocation) {
+    name.textContent = 'Not supported';
+    btn.textContent = 'DETECT'; btn.disabled = false;
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(pos => {
+    userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+
+    // User marker
+    layers.userMarker.clearLayers();
+    const userIcon = L.divIcon({
+      html: `<div style="width:16px;height:16px;background:#5dfdcb;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 6px rgba(93,253,203,0.3),0 0 20px #5dfdcb88"></div>`,
+      iconSize: [16, 16], iconAnchor: [8, 8], className: ''
+    });
+    L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
+      .bindPopup('<div class="popup-title">📍 You are here</div>')
+      .addTo(layers.userMarker);
+
+    map.setView([userLocation.lat, userLocation.lng], 14);
+
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`)
+      .then(r => r.json())
+      .then(data => {
+        const city = data.address.city || data.address.town || data.address.village || 'Your Area';
+        const st = data.address.state_code || '';
+        name.textContent = `${city}${st ? ', '+st : ''}`;
+        showToast('LOCATION FOUND!');
+        // Update event distances
+        updateDistances();
+      })
+      .catch(() => { name.textContent = `${pos.coords.latitude.toFixed(2)}°N`; })
+      .finally(() => { btn.textContent = 'UPDATE'; btn.disabled = false; });
+  }, () => {
+    name.textContent = 'Permission denied';
+    btn.textContent = 'RETRY'; btn.disabled = false;
+  });
+}
+
+function zoomToUser() {
+  if (userLocation) { map.setView([userLocation.lat, userLocation.lng], 15); }
+  else { detectLocation(); }
+}
+
+function updateDistances() {
+  if (!userLocation) return;
+  // Could update popup content with distance — stubbed for future integration
+}
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 3958.8;
+  const dLat = (lat2-lat1)*Math.PI/180;
+  const dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(1);
+}
+
+// ─── OSM / OVERPASS ───────────────────────────────────────────────
+function setStatus(t) { document.getElementById('statusPill').textContent = t; }
+
+function overpassQuery(q) {
+  return fetch(OVERPASS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+    body: 'data=' + encodeURIComponent(q)
+  }).then(r => r.json());
+}
+
+function addOSMMarkers(osmJson, targetLayer, emoji, color, label, paid = false) {
+  const els = osmJson.elements || [];
+  let count = 0;
+  const heatPts = [];
+
+  els.forEach(el => {
+    const lat = el.lat ?? el.center?.lat;
+    const lon = el.lon ?? el.center?.lon;
+    if (!lat || !lon) return;
+
+    const tags = el.tags || {};
+    const name = tags.name || tags.brand || tags.operator || 'Unnamed';
+    const addr = [tags['addr:housenumber'], tags['addr:street'], tags['addr:city']].filter(Boolean).join(' ');
+    const dist = userLocation ? ` · ${haversine(userLocation.lat, userLocation.lng, lat, lon)} mi away` : '';
+
+    const icon = paid ? makePaidIcon(emoji) : makeIcon(emoji, color);
+    const marker = L.marker([lat, lon], { icon });
+    marker.bindPopup(`
+      <div class="popup-title">${emoji} ${name}</div>
+      <div class="popup-type" style="color:${color}">${label.toUpperCase()}</div>
+      ${addr ? `<div class="popup-detail">📍 ${addr}</div>` : ''}
+      <div class="dist-badge">${dist}</div>
+      ${paid ? `<span class="popup-paid" onclick="showToast('FEATURED LISTING — LEARN MORE COMING SOON!')">★ FEATURED PARTNER</span>` : ''}
+      <span class="popup-rsvp" onclick="showToast('SHARE LOCATION COMING SOON!')">↗ SHARE</span>
+    `);
+    targetLayer.addLayer(marker);
+    heatPts.push([lat, lon, 0.6 + Math.random() * 0.4]);
+    count++;
+  });
+
+  return { count, heatPts };
+}
+
+async function refreshOSM() {
+  setStatus('Loading live data…');
+  layers.restaurants.clearLayers();
+  layers.breweries.clearLayers();
+  layers.gamestores.clearLayers();
+
+  const [s, w, n, e] = TV_BBOX;
+
+  const queries = {
+    restaurants: `[out:json][timeout:25];(node["amenity"="restaurant"](${s},${w},${n},${e});way["amenity"="restaurant"](${s},${w},${n},${e});node["amenity"="fast_food"](${s},${w},${n},${e});way["amenity"="fast_food"](${s},${w},${n},${e}););out center tags;`,
+    breweries: `[out:json][timeout:25];(node["craft"="brewery"](${s},${w},${n},${e});way["craft"="brewery"](${s},${w},${n},${e});node["amenity"="pub"](${s},${w},${n},${e});way["amenity"="pub"](${s},${w},${n},${e});node["amenity"="bar"](${s},${w},${n},${e}););out center tags;`,
+    gamestores: `[out:json][timeout:25];(node["shop"="games"](${s},${w},${n},${e});way["shop"="games"](${s},${w},${n},${e});node["shop"="hobby"](${s},${w},${n},${e});way["shop"="hobby"](${s},${w},${n},${e});node["shop"="toys"](${s},${w},${n},${e}););out center tags;`,
+  };
+
+  try {
+    const [restJson, brewJson, gameJson] = await Promise.all([
+      overpassQuery(queries.restaurants),
+      overpassQuery(queries.breweries),
+      overpassQuery(queries.gamestores),
+    ]);
+
+    const allHeatPts = [
+      // Seed with known density anchors
+      [43.6219, -116.3495, 0.95],
+      [43.6088, -116.2785, 0.85],
+      [43.6150, -116.2023, 0.70],
+      [43.6123, -116.3937, 0.70],
+    ];
+
+    const rest = addOSMMarkers(restJson, layers.restaurants, '🍽️', '#ffd93d', 'Restaurant', true);
+    const brew = addOSMMarkers(brewJson, layers.breweries, '🍺', '#a78bfa', 'Brewery / Pub', true);
+    const game = addOSMMarkers(gameJson, layers.gamestores, '🎲', '#5dfdcb', 'Game Store', true);
+
+    allHeatPts.push(...rest.heatPts, ...brew.heatPts, ...game.heatPts);
+
+    // Add third spaces to heat
+    THIRD_SPACES.forEach(p => allHeatPts.push([p.lat, p.lng, 0.5]));
+    LOCAL_EVENTS.forEach(ev => allHeatPts.push([ev.lat, ev.lng, 0.7]));
+
+    layers.hotspots.setLatLngs(allHeatPts);
+
+    document.getElementById('cnt-restaurants').textContent = rest.count;
+    document.getElementById('cnt-breweries').textContent = brew.count;
+    document.getElementById('cnt-gamestores').textContent = game.count || '(few tagged)';
+
+    setStatus(`🍽️ ${rest.count}  🍺 ${brew.count}  🎲 ${game.count}`);
+    showToast('LIVE DATA LOADED!');
+  } catch (err) {
+    console.error(err);
+    setStatus('Overpass error — retry');
+    showToast('OSM LOAD FAILED — TRY AGAIN');
+  }
+}
+
+// ─── HOTSPOT VIEW TOGGLE ──────────────────────────────────────────
+function toggleHotspotView() {
+  hotspotViewOn = !hotspotViewOn;
+  const btn = document.getElementById('hotspotViewBtn');
+  if (hotspotViewOn) {
+    map.addLayer(layers.hotspots);
+    btn.classList.add('active');
+    btn.textContent = '🔥 HOTSPOT ON';
+  } else {
+    map.removeLayer(layers.hotspots);
+    btn.classList.remove('active');
+    btn.textContent = '🔥 HOTSPOT VIEW';
+  }
+}
+
+// ─── SIDEBAR TOGGLE ───────────────────────────────────────────────
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  const sb = document.getElementById('sidebar');
+  const btn = document.getElementById('sidebarToggle');
+  sb.classList.toggle('collapsed', !sidebarOpen);
+  btn.textContent = sidebarOpen ? '‹' : '›';
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─── KEYBOARD ────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeMeetupModal();
+});
+
+// ─── BOOT ────────────────────────────────────────────────────────
+renderMeetups();
+refreshOSM();
+</script>
+</body>
+</html>
