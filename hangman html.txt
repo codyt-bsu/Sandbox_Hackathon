@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hangman</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      background: #0b1220;
+      color: #e8eefc;
+    }
+    .app {
+      width: min(920px, 92vw);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+      backdrop-filter: blur(8px);
+    }
+    header {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0.3px;
+    }
+    header .meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .pill {
+      font-size: 13px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 340px 1fr;
+    }
+    @media (max-width: 820px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: rgba(0,0,0,0.18);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .word {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 10px;
+      min-height: 72px;
+    }
+    .slot {
+      width: 34px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      font-weight: 700;
+      border-bottom: 3px solid rgba(255,255,255,0.5);
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .slot.revealed {
+      border-bottom-color: rgba(120, 255, 180, 0.8);
+      color: #a9ffd0;
+    }
+    .keyboard {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(13, minmax(0, 1fr));
+    }
+    @media (max-width: 520px) {
+      .keyboard { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+    }
+    button.key {
+      padding: 10px 0;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+      color: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.05s ease, background 0.15s ease, opacity 0.15s ease;
+      text-transform: uppercase;
+    }
+    button.key:active { transform: translateY(1px); }
+    button.key[disabled] { cursor: not-allowed; opacity: 0.45; }
+    button.key.good { background: rgba(120, 255, 180, 0.18); border-color: rgba(120, 255, 180, 0.35); }
+    button.key.bad  { background: rgba(255, 120, 120, 0.14); border-color: rgba(255, 120, 120, 0.35); }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+    }
+    .btn {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.10);
+      color: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn.primary {
+      background: rgba(120, 180, 255, 0.18);
+      border-color: rgba(120, 180, 255, 0.35);
+    }
+    .btn:active { transform: translateY(1px); }
+
+    .status {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+    .status h2 {
+      margin: 0;
+      font-size: 16px;
+      opacity: 0.9;
+    }
+    .msg {
+      margin: 0;
+      line-height: 1.35;
+      opacity: 0.95;
+    }
+
+    .figure {
+      display: grid;
+      place-items: center;
+      padding: 12px;
+    }
+    svg { width: 100%; max-width: 320px; height: auto; }
+    .stroke {
+      fill: none;
+      stroke: rgba(255,255,255,0.85);
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .faint { stroke: rgba(255,255,255,0.35); }
+    .hidden { opacity: 0; }
+    .hint {
+      font-size: 13px;
+      opacity: 0.85;
+    }
+    .footerhint {
+      font-size: 12px;
+      opacity: 0.75;
+      margin-top: 8px;
+      text-align: center;
+    }
+    input[type="text"]{
+      padding: 9px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.22);
+      color: inherit;
+      min-width: 220px;
+      outline: none;
+    }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:center; }
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Hangman game">
+    <header>
+      <h1>Hangman</h1>
+      <div class="meta">
+        <div class="pill">Lives: <span id="lives">6</span></div>
+        <div class="pill">Wins: <span id="wins">0</span></div>
+        <div class="pill">Losses: <span id="losses">0</span></div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card figure" aria-label="Hangman figure">
+        <svg viewBox="0 0 240 260" aria-hidden="true">
+          <!-- gallows -->
+          <path class="stroke faint" d="M30 230 H210" />
+          <path class="stroke faint" d="M70 230 V40" />
+          <path class="stroke faint" d="M70 40 H160" />
+          <path class="stroke faint" d="M160 40 V70" />
+
+          <!-- body parts (6 lives) -->
+          <circle id="p1" class="stroke hidden" cx="160" cy="92" r="22"></circle>
+          <path id="p2" class="stroke hidden" d="M160 114 V164"></path>
+          <path id="p3" class="stroke hidden" d="M160 132 L132 150"></path>
+          <path id="p4" class="stroke hidden" d="M160 132 L188 150"></path>
+          <path id="p5" class="stroke hidden" d="M160 164 L138 198"></path>
+          <path id="p6" class="stroke hidden" d="M160 164 L182 198"></path>
+        </svg>
+        <p class="footerhint">Type letters on your keyboard or click them below.</p>
+      </section>
+
+      <section class="card status" aria-label="Game status">
+        <div>
+          <h2 id="titleLine">Guess the word</h2>
+          <p class="msg" id="message">Pick a letter. You have 6 lives.</p>
+          <p class="hint" id="hintLine">Hint: <strong id="hint"></strong></p>
+        </div>
+
+        <div class="card" style="padding:12px;">
+          <div class="word" id="word" aria-label="Word slots"></div>
+        </div>
+
+        <div class="card" style="padding:12px;">
+          <div class="keyboard" id="keyboard" aria-label="On-screen keyboard"></div>
+        </div>
+
+        <div class="controls">
+          <button class="btn primary" id="newGameBtn">New game</button>
+          <button class="btn" id="revealBtn" title="Reveals one random hidden letter (costs 1 life)">Reveal a letter (-1 life)</button>
+          <div class="row" aria-label="Custom word entry">
+            <input id="customWord" type="text" maxlength="24" placeholder="Optional: set a custom word" />
+            <button class="btn" id="setWordBtn">Set word</button>
+          </div>
+        </div>
+
+        <p class="footerhint">Words are stored locally (no server). Custom word is hidden once you start guessing.</p>
+      </section>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const WORDS = [
+    { word: "javascript", hint: "Language of the web" },
+    { word: "boise", hint: "Idaho’s capital" },
+    { word: "physics", hint: "Study of matter and energy" },
+    { word: "momentum", hint: "Mass × velocity" },
+    { word: "hangman", hint: "This game" },
+    { word: "database", hint: "Stores structured data" },
+    { word: "controller", hint: "You might use it to game" },
+    { word: "touchdown", hint: "6 points (NFL)" },
+    { word: "variable", hint: "Changes value in code" },
+    { word: "polygon", hint: "Many-sided shape" },
+    { word: "algorithm", hint: "Step-by-step procedure" },
+    { word: "compiler", hint: "Turns source into machine code" },
+  ];
+
+  const MAX_LIVES = 6;
+
+  // DOM
+  const elLives = document.getElementById("lives");
+  const elWins = document.getElementById("wins");
+  const elLosses = document.getElementById("losses");
+  const elWord = document.getElementById("word");
+  const elKeyboard = document.getElementById("keyboard");
+  const elMessage = document.getElementById("message");
+  const elHint = document.getElementById("hint");
+  const elTitleLine = document.getElementById("titleLine");
+  const newGameBtn = document.getElementById("newGameBtn");
+  const revealBtn = document.getElementById("revealBtn");
+  const customWordInput = document.getElementById("customWord");
+  const setWordBtn = document.getElementById("setWordBtn");
+
+  const parts = Array.from({ length: MAX_LIVES }, (_, i) => document.getElementById(`p${i+1}`));
+
+  // State
+  let target = "";
+  let hint = "";
+  let revealed = new Set();
+  let guessed = new Set();
+  let lives = MAX_LIVES;
+  let over = false;
+  let wins = Number(localStorage.getItem("hangman_wins") || 0);
+  let losses = Number(localStorage.getItem("hangman_losses") || 0);
+  let customWord = "";
+
+  function normalizeWord(raw) {
+    return (raw || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+  }
+
+  function chooseWord() {
+    if (customWord) {
+      return { word: customWord, hint: "Custom word" };
+    }
+    const pick = WORDS[Math.floor(Math.random() * WORDS.length)];
+    return pick;
+  }
+
+  function setMessage(text) {
+    elMessage.textContent = text;
+  }
+
+  function updateScore() {
+    elWins.textContent = wins;
+    elLosses.textContent = losses;
+    localStorage.setItem("hangman_wins", String(wins));
+    localStorage.setItem("hangman_losses", String(losses));
+  }
+
+  function resetFigure() {
+    parts.forEach(p => p.classList.add("hidden"));
+  }
+
+  function showFigureForLives() {
+    // show parts for wrong guesses: 0 wrong => none; 6 wrong => all
+    const wrong = MAX_LIVES - lives;
+    parts.forEach((p, idx) => {
+      if (idx < wrong) p.classList.remove("hidden");
+      else p.classList.add("hidden");
+    });
+  }
+
+  function renderWord() {
+    elWord.innerHTML = "";
+    [...target].forEach(ch => {
+      const div = document.createElement("div");
+      div.className = "slot";
+      const isShown = revealed.has(ch) || over && (lives === 0);
+      if (isShown) {
+        div.textContent = ch.toUpperCase();
+        div.classList.add("revealed");
+      } else {
+        div.textContent = "";
+      }
+      elWord.appendChild(div);
+    });
+  }
+
+  function renderKeyboard() {
+    const letters = "abcdefghijklmnopqrstuvwxyz".split("");
+    elKeyboard.innerHTML = "";
+    letters.forEach(letter => {
+      const btn = document.createElement("button");
+      btn.className = "key";
+      btn.textContent = letter;
+      btn.type = "button";
+
+      const disabled = over || guessed.has(letter);
+      btn.disabled = disabled;
+
+      if (guessed.has(letter)) {
+        if (target.includes(letter)) btn.classList.add("good");
+        else btn.classList.add("bad");
+      }
+
+      btn.addEventListener("click", () => guess(letter));
+      elKeyboard.appendChild(btn);
+    });
+  }
+
+  function checkWin() {
+    for (const ch of target) {
+      if (!revealed.has(ch)) return false;
+    }
+    return true;
+  }
+
+  function endGame(won) {
+    over = true;
+    if (won) {
+      wins += 1;
+      elTitleLine.textContent = "You win!";
+      setMessage(`Nice. The word was “${target.toUpperCase()}”. Press New game to play again.`);
+    } else {
+      losses += 1;
+      elTitleLine.textContent = "You lose!";
+      setMessage(`Rip. The word was “${target.toUpperCase()}”. Press New game to try again.`);
+      // reveal full figure
+      lives = 0;
+      showFigureForLives();
+    }
+    updateScore();
+    renderWord();
+    renderKeyboard();
+    revealBtn.disabled = true;
+  }
+
+  function guess(letter) {
+    if (over) return;
+    if (!/^[a-z]$/.test(letter)) return;
+    if (guessed.has(letter)) return;
+
+    guessed.add(letter);
+
+    if (target.includes(letter)) {
+      revealed.add(letter);
+      setMessage(`Good guess: ${letter.toUpperCase()}`);
+      renderWord();
+      renderKeyboard();
+      if (checkWin()) endGame(true);
+    } else {
+      lives -= 1;
+      elLives.textContent = lives;
+      showFigureForLives();
+      setMessage(`Nope: ${letter.toUpperCase()}. Lives left: ${lives}`);
+      renderKeyboard();
+      if (lives <= 0) endGame(false);
+    }
+  }
+
+  function revealOne() {
+    if (over) return;
+    // find hidden letters
+    const hidden = [...new Set([...target].filter(ch => !revealed.has(ch)))];
+    if (hidden.length === 0) return;
+
+    // cost 1 life
+    lives -= 1;
+    elLives.textContent = lives;
+    showFigureForLives();
+
+    const ch = hidden[Math.floor(Math.random() * hidden.length)];
+    revealed.add(ch);
+    guessed.add(ch);
+
+    setMessage(`Revealed: ${ch.toUpperCase()} (cost 1 life)`);
+    renderWord();
+    renderKeyboard();
+
+    if (checkWin()) endGame(true);
+    else if (lives <= 0) endGame(false);
+  }
+
+  function startNewGame() {
+    const pick = chooseWord();
+    target = pick.word;
+    hint = pick.hint;
+
+    revealed = new Set();
+    guessed = new Set();
+    lives = MAX_LIVES;
+    over = false;
+
+    elLives.textContent = lives;
+    elHint.textContent = hint;
+    elTitleLine.textContent = "Guess the word";
+    setMessage("Pick a letter. You have 6 lives.");
+
+    resetFigure();
+    renderWord();
+    renderKeyboard();
+    revealBtn.disabled = false;
+
+    // once game starts, hide custom word text (so it can't be read by someone looking)
+    customWordInput.value = "";
+  }
+
+  function setCustomWordFromInput() {
+    const w = normalizeWord(customWordInput.value);
+    if (w.length < 3) {
+      setMessage("Custom word must be at least 3 letters (A–Z only).");
+      return;
+    }
+    if (w.length > 24) {
+      setMessage("Custom word must be 24 letters or less.");
+      return;
+    }
+    customWord = w;
+    setMessage("Custom word set. Press New game.");
+  }
+
+  // Keyboard input
+  window.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const key = e.key.toLowerCase();
+    if (/^[a-z]$/.test(key)) {
+      e.preventDefault();
+      guess(key);
+    } else if (key === "enter") {
+      // convenience: start new game
+      startNewGame();
+    }
+  });
+
+  newGameBtn.addEventListener("click", startNewGame);
+  revealBtn.addEventListener("click", revealOne);
+  setWordBtn.addEventListener("click", setCustomWordFromInput);
+
+  // Init
+  updateScore();
+  startNewGame();
+})();
+</script>
+</body>
+</html>
